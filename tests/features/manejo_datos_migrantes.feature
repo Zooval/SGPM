@@ -37,13 +37,17 @@ Característica: Manejo de datos de los migrantes
       | 0605914283 |
 
   Esquema del escenario: Registro sin fotografía
-    Dado que un cliente solicita iniciar un trámite migratorio
-    Cuando el asesor registra la información del migrante sin fotografía
+    Dado que un cliente ha solicitado iniciar un trámite migratorio
+    Cuando el asesor registra la información del migrante con los siguientes datos:
+      | cedula   | nombre   | edad   | estado_civil | ocupacion   | condicion   | tipo_visa | pais_destino | telefono   | correo   | direccion   | foto   |
+      | <cedula> | <nombre> | <edad> | <estado>     | <ocupacion> | <condicion> | <visa>    | <pais>       | <telefono> | <correo> | <direccion> | <foto> |
     Entonces el migrante queda registrado
     Y la fotografía queda pendiente de carga
 
     Ejemplos:
-      | cedula     | nombre      |
-      | 1712098475 | María Gómez |
+      | cedula     | nombre         | edad | estado  | ocupacion | visa     | condicion | pais     | telefono   | correo                  | direccion | foto |
+      | 1712098475 | Stephany Gómez | 19   | Soltera | Estudio   | Estudiar | Inmigrante | España   | 0987652121 | stephany.gomez@mail.com | Cayambe   |      |
+      | 0912385423 | German Andrade | 30   | Trabajo | Trabajo   | Vivir    | Inmigrante | Alemania | 0971120934 | german.andrade@mail.com | Cumbaya   |      |
+
 
 
