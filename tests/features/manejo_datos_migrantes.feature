@@ -45,9 +45,19 @@ Característica: Manejo de datos de los migrantes
     Y la fotografía queda pendiente de carga
 
     Ejemplos:
-      | cedula     | nombre         | edad | estado  | ocupacion | visa     | condicion | pais     | telefono   | correo                  | direccion | foto |
+      | cedula     | nombre         | edad | estado  | ocupacion | visa     | condicion  | pais     | telefono   | correo                  | direccion | foto |
       | 1712098475 | Stephany Gómez | 19   | Soltera | Estudio   | Estudiar | Inmigrante | España   | 0987652121 | stephany.gomez@mail.com | Cayambe   |      |
       | 0912385423 | German Andrade | 30   | Trabajo | Trabajo   | Vivir    | Inmigrante | Alemania | 0971120934 | german.andrade@mail.com | Cumbaya   |      |
+
+  Esquema del escenario: Registro con datos incompletos
+    Dado que el cliente solicita iniciar un trámite migratorio
+    Cuando el asesor omite el campo "<campo>"
+    Entonces se solicita completar la información obligatoria
+
+    Ejemplos:
+      | campo        |
+      | correo       |
+      | pais_destino |
 
 
 
