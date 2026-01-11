@@ -55,9 +55,9 @@ Característica: Manejo de datos de los migrantes
     Entonces se solicita completar la información obligatoria
 
     Ejemplos:
-      | campo        |
-      | correo       |
-      | pais_destino |
+      | campo  |
+      | correo |
+      | pais   |
 
 
 
