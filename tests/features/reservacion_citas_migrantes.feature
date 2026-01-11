@@ -2,8 +2,3 @@
 # language: es
 
   Característica:
-    Como usuario
-    quiero esto
-    para aquello
-
-    Escenario:
