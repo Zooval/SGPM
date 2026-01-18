@@ -9,7 +9,7 @@ Característica: Reprogramación de citas migratorias
   para mantener una agenda actualizada y notificar oportunamente al migrante.
 
   Esquema del escenario: Reprogramación exitosa de cita de visa
-    Dado que existe una cita de visa con ID "<id_cita>" agendada para "<fecha_actual>"
+    Dado que existe una cita de visa con ID "<id_cita>" agendada para "<fecha_actual> de tipo "<tipo_tramite>"
     Y que la fecha "<nueva_fecha>" se encuentra disponible en el calendario
     Cuando el asesor reprograma la cita "<id_cita>" para la "<nueva_fecha>"
     Entonces el sistema debe registrar la nueva fecha "<nueva_fecha>" en la base de datos
