@@ -7,7 +7,7 @@ Característica: Gestión de citas migratorias
   Para organizar eficientemente la atención a los migrantes
 
 Antecedentes:
-  Dado que el empleado "Juan Pérez" se encuentra autenticado en el sistema
+  Dado que el empleado Juan Pérez se encuentra autenticado en el sistema
   Y existe un migrante registrado con nombre "María López" y documento "ABC123"
   Y el sistema de gestión de citas se encuentra disponible
 
@@ -39,6 +39,4 @@ Escenario: Cancelación de una cita
   Cuando el empleado cancela la cita
   Entonces la cita deja de estar activa
   Y la cancelación queda registrada en el sistema
-
-
 

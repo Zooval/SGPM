@@ -1,22 +1,16 @@
 from behave import *
 
-use_step_matcher("re")
+@step("que el empleado {nombre_empleado} se encuentra autenticado en el sistema")
+def step_impl(context, nombre_empleado):
+    context.empleado = empleado
 
 
-@step('que el empleado "Juan Pérez" se encuentra autenticado en el sistema')
-def step_impl(context: behave.runner.Context):
-    """
-    :type context: behave.runner.Context
-    """
-    raise NotImplementedError(u'STEP: Dado que el empleado "Juan Pérez" se encuentra autenticado en el sistema')
-
-
-@step('existe un migrante registrado con nombre "María López" y documento "ABC123"')
-def step_impl(context: behave.runner.Context):
-    """
-    :type context: behave.runner.Context
-    """
-    raise NotImplementedError(u'STEP: Y existe un migrante registrado con nombre "María López" y documento "ABC123"')
+@step('existe un migrante registrado con nombre {migrante_registrado} y documento {documento}}')
+def step_impl(context, migrante_registrado, documento):
+    context.migrante = {
+        "nombre": nombre,
+        "documento": documento
+    }
 
 
 @step("el sistema de gestión de citas se encuentra disponible")
