@@ -1,27 +1,137 @@
 @startuml
-'https://plantuml.com/class-diagram
+' https://plantuml.com/class-diagram
 
-abstract class AbstractList
-abstract AbstractCollection
-interface List
-interface Collection
+  class Solicitante {
+    +cedula: Cedula
+    +nombres: String
+    +apellidos: String
+    +correo: Email
+    +telefono: String
+  }
 
-List <|-- AbstractList
-Collection <|-- AbstractCollection
+  class Asesor {
+    +email: Email
+    +rol: RolUsuario
+    +estadoCuenta: EstadoCuentaUsuario
+    +dosFAHabilitado: boolean
+  }
 
-Collection <|- List
-AbstractCollection <|- AbstractList
-AbstractList <|-- ArrayList
+  class SolicitudMigratoria {
+    +codigo: String
+    +migranteCedula: Cedula
+    +tipoServicio: TipoServicio
+    +estadoActual: EstadoSolicitud
+    +creadaEn: DateTime
+    +asignadaA: Email
+    +cambiarEstado(nuevo: EstadoSolicitud, por: Email, en: DateTime): void
+  }
 
-class ArrayList {
-Object[] elementData
-size()
-}
+  class Documento {
+    +id: String
+    +solicitudCodigo: String
+    +tipo: TipoDocumento
+    +estado: EstadoDocumento
+    +fechaExpiracion: Date
+    +versionActual: int
+    +marcarVencido(en: DateTime): void
+  }
 
-enum TimeUnit {
-DAYS
-HOURS
-MINUTES
-}
+  class Cita {
+    +id: String
+    +solicitudCodigo: String
+    +rango: RangoFechaHora
+    +tipo: TipoCita
+    +ubicacion: String
+  }
+
+  class Tarea {
+    +id: String
+    +solicitudCodigo: String
+    +asignadaA: Email
+    +vencimiento: DateTime
+    +estado: EstadoTarea
+    +prioridad: PrioridadTarea
+  }
+
+  class Notificacion {
+    +id: String
+    +destinatario: Email
+    +tipo: TipoNotificacion
+    +mensaje: String
+    +creadaEn: DateTime
+    +leida: boolean
+  }
+
+
+  ' ===== Enums =====
+  enum EstadoSolicitud {
+    CREADA
+    EN_REVISION
+    DOCUMENTOS_PENDIENTES
+    ENVIADA
+    APROBADA
+    RECHAZADA
+    CERRADA
+  }
+
+  enum TipoServicio {
+    VISA_TURISMO
+    VISA_TRABAJO
+    ESTUDIOS
+    RESIDENCIA
+  }
+
+  enum TipoDocumento {
+    PASAPORTE
+    ANTECEDENTES
+    ESTADOS_BANCARIOS
+    CONTRATO_TRABAJO
+    MATRICULA_ESTUDIOS
+    OTROS
+  }
+
+  enum EstadoDocumento {
+    RECIBIDO
+    EN_REVISION
+    APROBADO
+    RECHAZADO
+    VENCIDO
+  }
+
+  enum EstadoCuentaAsesor {
+    ACTIVA
+    SUSPENDIDA
+    BLOQUEADA
+  }
+
+  enum EstadoTarea {
+    PENDIENTE
+    EN_PROGRESO
+    COMPLETADA
+    CANCELADA
+  }
+
+  enum PrioridadTarea {
+    BAJA
+    MEDIA
+    ALTA
+    CRITICA
+  }
+
+  enum TipoCita {
+    CONSULAR
+    BIOMETRIA
+    ENTREGA_DOCUMENTOS
+    ASESORIA
+  }
+
+  enum TipoNotificacion {
+    RECORDATORIO
+    DOC_FALTANTE
+    CITA_PROXIMA
+    CAMBIO_ESTADO
+    SEGURIDAD
+  }
+
 
 @enduml

@@ -4,31 +4,37 @@ from behave import *
 use_step_matcher("re")
 
 
-@step('que existe un cliente con cédula "<cliente_cedula>" y correo "<cliente_correo>"')
+@step('que existe un cliente con cédula "0912345678" y correo "cliente@mail\.com"')
+def step_impl(context: behave.runner.Context):
+    """
+    :type context: behave.runner.Context
+    """
+    raise NotImplementedError(u'STEP: Dado que existe un cliente con cédula "0912345678" y correo "cliente@mail.com"')
+
+
+@step('existe una solicitud con código "SOL-2026-0001" para el cliente "0912345678" con fecha de creación "2026-01-10"')
 def step_impl(context: behave.runner.Context):
     """
     :type context: behave.runner.Context
     """
     raise NotImplementedError(
-        u'STEP: Dado que existe un cliente con cédula "<cliente_cedula>" y correo "<cliente_correo>"')
+        u'STEP: Y existe una solicitud con código "SOL-2026-0001" para el cliente "0912345678" con fecha de creación "2026-01-10"')
 
 
-@step(
-    'existe una solicitud con código "<solicitud_codigo>" para el cliente "<cliente_cedula>" con fecha de creación "<fecha_creacion>"')
+@step('la solicitud está en estado "Creada"')
 def step_impl(context: behave.runner.Context):
     """
     :type context: behave.runner.Context
     """
-    raise NotImplementedError(
-        u'STEP: Y existe una solicitud con código "<solicitud_codigo>" para el cliente "<cliente_cedula>" con fecha de creación "<fecha_creacion>"')
+    raise NotImplementedError(u'STEP: Y la solicitud está en estado "Creada"')
 
 
-@step('la solicitud tiene estado "<estado_inicial>"')
+@step('el asesor autenticado es "asesor@agencia\.com"')
 def step_impl(context: behave.runner.Context):
     """
     :type context: behave.runner.Context
     """
-    raise NotImplementedError(u'STEP: Y la solicitud tiene estado "<estado_inicial>"')
+    raise NotImplementedError(u'STEP: Y el asesor autenticado es "asesor@agencia.com"')
 
 
 @step('que la transición de "(?P<estado_inicial>.+)" a "(?P<estado_nuevo>.+)" está permitida')
@@ -41,45 +47,44 @@ def step_impl(context: behave.runner.Context, estado_inicial: str, estado_nuevo:
     raise NotImplementedError(u'STEP: Dado que la transición de "<estado_inicial>" a "<estado_nuevo>" está permitida')
 
 
-@step('el asesor "(?P<asesor_email>.+)" cambia el estado a "(?P<estado_nuevo>.+)" con motivo "(?P<motivo>.+)"')
-def step_impl(context: behave.runner.Context, asesor_email: str, estado_nuevo: str, motivo: str):
+@step('el asesor cambia el estado a "(?P<estado_nuevo>.+)" indicando el motivo "(?P<motivo>.+)"')
+def step_impl(context: behave.runner.Context, estado_nuevo: str, motivo: str):
     """
     :type context: behave.runner.Context
-    :type asesor_email: str
     :type estado_nuevo: str
     :type motivo: str
     """
     raise NotImplementedError(
-        u'STEP: Cuando el asesor "<asesor_email>" cambia el estado a "<estado_nuevo>" con motivo "<motivo>"')
+        u'STEP: Cuando el asesor cambia el estado a "<estado_nuevo>" indicando el motivo "<motivo>"')
 
 
-@step('la solicitud queda en estado "(?P<estado_nuevo>.+)"')
+@step('el asesor visualiza el estado actual como "(?P<estado_nuevo>.+)"')
 def step_impl(context: behave.runner.Context, estado_nuevo: str):
     """
     :type context: behave.runner.Context
     :type estado_nuevo: str
     """
-    raise NotImplementedError(u'STEP: Entonces la solicitud queda en estado "<estado_nuevo>"')
+    raise NotImplementedError(u'STEP: Entonces el asesor visualiza el estado actual como "<estado_nuevo>"')
 
 
-@step('se actualiza la fecha de última actualización a "(?P<fecha_evento>.+)"')
+@step('el asesor visualiza la "fechaUltimaActualizacion" como "(?P<fecha_evento>.+)"')
 def step_impl(context: behave.runner.Context, fecha_evento: str):
     """
     :type context: behave.runner.Context
     :type fecha_evento: str
     """
-    raise NotImplementedError(u'STEP: Y se actualiza la fecha de última actualización a "<fecha_evento>"')
+    raise NotImplementedError(u'STEP: Y el asesor visualiza la "fechaUltimaActualizacion" como "<fecha_evento>"')
 
 
-@step("se registra un evento en el historial con:")
+@step("al revisar el historial, el asesor visualiza un registro con:")
 def step_impl(context: behave.runner.Context):
     """
     :type context: behave.runner.Context
     """
-    raise NotImplementedError(u'STEP: Y se registra un evento en el historial con:
-                              | usuario | < asesor_email > |
-          | anterior | < estado_inicial > |
-    | nuevo | < estado_nuevo > |
+    raise NotImplementedError(u'STEP: Y al revisar el historial, el asesor visualiza un registro con:
+                              | usuario | asesor @ agencia.com |
+                              | anterior | < estado_inicial > |
+          | nuevo | < estado_nuevo > |
     | fecha | < fecha_evento > |
     | motivo | < motivo > | ')
 
@@ -95,68 +100,52 @@ def step_impl(context: behave.runner.Context, estado_inicial: str, estado_nuevo:
         u'STEP: Dado que la transición de "<estado_inicial>" a "<estado_nuevo>" no está permitida')
 
 
-@step('el asesor "(?P<asesor_email>.+)" intenta cambiar el estado a "(?P<estado_nuevo>.+)" con motivo "(?P<motivo>.+)"')
-def step_impl(context: behave.runner.Context, asesor_email: str, estado_nuevo: str, motivo: str):
+@step('el asesor intenta cambiar el estado a "(?P<estado_nuevo>.+)" indicando el motivo "(?P<motivo>.+)"')
+def step_impl(context: behave.runner.Context, estado_nuevo: str, motivo: str):
     """
     :type context: behave.runner.Context
-    :type asesor_email: str
     :type estado_nuevo: str
     :type motivo: str
     """
     raise NotImplementedError(
-        u'STEP: Cuando el asesor "<asesor_email>" intenta cambiar el estado a "<estado_nuevo>" con motivo "<motivo>"')
+        u'STEP: Cuando el asesor intenta cambiar el estado a "<estado_nuevo>" indicando el motivo "<motivo>"')
 
 
-@step("el sistema rechaza el cambio")
-def step_impl(context: behave.runner.Context):
-    """
-    :type context: behave.runner.Context
-    """
-    raise NotImplementedError(u'STEP: Entonces el sistema rechaza el cambio')
-
-
-@step('la solicitud mantiene el estado "(?P<estado_inicial>.+)"')
-def step_impl(context: behave.runner.Context, estado_inicial: str):
-    """
-    :type context: behave.runner.Context
-    :type estado_inicial: str
-    """
-    raise NotImplementedError(u'STEP: Y la solicitud mantiene el estado "<estado_inicial>"')
-
-
-@step("no se registra ningún evento de cambio de estado en el historial")
-def step_impl(context: behave.runner.Context):
-    """
-    :type context: behave.runner.Context
-    """
-    raise NotImplementedError(u'STEP: Y no se registra ningún evento de cambio de estado en el historial')
-
-
-@step('el mensaje de error es "(?P<mensaje_error>.+)"')
+@step('el asesor visualiza el mensaje "(?P<mensaje_error>.+)"')
 def step_impl(context: behave.runner.Context, mensaje_error: str):
     """
     :type context: behave.runner.Context
     :type mensaje_error: str
     """
-    raise NotImplementedError(u'STEP: Y el mensaje de error es "<mensaje_error>"')
+    raise NotImplementedError(u'STEP: Y el asesor visualiza el mensaje "<mensaje_error>"')
 
 
-@step('el resultado del cambio es "(?P<resultado>.+)"')
+@step("al revisar el historial, el asesor no visualiza un registro asociado a esta acción")
+def step_impl(context: behave.runner.Context):
+    """
+    :type context: behave.runner.Context
+    """
+    raise NotImplementedError(
+        u'STEP: Y al revisar el historial, el asesor no visualiza un registro asociado a esta acción')
+
+
+@step('el asesor visualiza el resultado como "(?P<resultado>.+)"')
 def step_impl(context: behave.runner.Context, resultado: str):
     """
     :type context: behave.runner.Context
     :type resultado: str
     """
-    raise NotImplementedError(u'STEP: Entonces el resultado del cambio es "<resultado>"')
+    raise NotImplementedError(u'STEP: Entonces el asesor visualiza el resultado como "<resultado>"')
 
 
-@step('si el resultado es "rechazado" el mensaje de error es "(?P<mensaje_error>.+)"')
+@step('si el resultado es "rechazado", el asesor visualiza el mensaje "(?P<mensaje_error>.+)"')
 def step_impl(context: behave.runner.Context, mensaje_error: str):
     """
     :type context: behave.runner.Context
     :type mensaje_error: str
     """
-    raise NotImplementedError(u'STEP: Y si el resultado es "rechazado" el mensaje de error es "<mensaje_error>"')
+    raise NotImplementedError(
+        u'STEP: Y si el resultado es "rechazado", el asesor visualiza el mensaje "<mensaje_error>"')
 
 
 @step('que la solicitud está en estado "Archivada"')
@@ -167,184 +156,143 @@ def step_impl(context: behave.runner.Context):
     raise NotImplementedError(u'STEP: Dado que la solicitud está en estado "Archivada"')
 
 
-@step("el sistema rechaza la modificación")
-def step_impl(context: behave.runner.Context):
-    """
-    :type context: behave.runner.Context
-    """
-    raise NotImplementedError(u'STEP: Entonces el sistema rechaza la modificación')
-
-
-@step('que la fecha "(?P<tipo_fecha>.+)" es una fecha permitida del proceso')
+@step('que "(?P<tipo_fecha>.+)" es un campo de fecha permitido del proceso')
 def step_impl(context: behave.runner.Context, tipo_fecha: str):
     """
     :type context: behave.runner.Context
     :type tipo_fecha: str
     """
-    raise NotImplementedError(u'STEP: Dado que la fecha "<tipo_fecha>" es una fecha permitida del proceso')
+    raise NotImplementedError(u'STEP: Dado que "<tipo_fecha>" es un campo de fecha permitido del proceso')
 
 
-@step('la fecha "(?P<fecha_valor>.+)" es igual o posterior a "(?P<fecha_creacion>.+)"')
-def step_impl(context: behave.runner.Context, fecha_valor: str, fecha_creacion: str):
+@step('"(?P<fecha_valor>.+)" es igual o posterior a "2026-01-10"')
+def step_impl(context: behave.runner.Context, fecha_valor: str):
     """
     :type context: behave.runner.Context
     :type fecha_valor: str
-    :type fecha_creacion: str
     """
-    raise NotImplementedError(u'STEP: Y la fecha "<fecha_valor>" es igual o posterior a "<fecha_creacion>"')
+    raise NotImplementedError(u'STEP: Y "<fecha_valor>" es igual o posterior a "2026-01-10"')
 
 
-@step('el asesor "(?P<asesor_email>.+)" asigna "(?P<tipo_fecha>.+)" con valor "(?P<fecha_valor>.+)"')
-def step_impl(context: behave.runner.Context, asesor_email: str, tipo_fecha: str, fecha_valor: str):
-    """
-    :type context: behave.runner.Context
-    :type asesor_email: str
-    :type tipo_fecha: str
-    :type fecha_valor: str
-    """
-    raise NotImplementedError(
-        u'STEP: Cuando el asesor "<asesor_email>" asigna "<tipo_fecha>" con valor "<fecha_valor>"')
-
-
-@step('la solicitud guarda "(?P<tipo_fecha>.+)" con valor "(?P<fecha_valor>.+)"')
+@step('el asesor asigna "(?P<tipo_fecha>.+)" con valor "(?P<fecha_valor>.+)"')
 def step_impl(context: behave.runner.Context, tipo_fecha: str, fecha_valor: str):
     """
     :type context: behave.runner.Context
     :type tipo_fecha: str
     :type fecha_valor: str
     """
-    raise NotImplementedError(u'STEP: Entonces la solicitud guarda "<tipo_fecha>" con valor "<fecha_valor>"')
+    raise NotImplementedError(u'STEP: Cuando el asesor asigna "<tipo_fecha>" con valor "<fecha_valor>"')
 
 
-@step("se registra un evento en el historial de fechas con:")
+@step('el asesor visualiza "(?P<tipo_fecha>.+)" como "(?P<fecha_valor>.+)"')
+def step_impl(context: behave.runner.Context, tipo_fecha: str, fecha_valor: str):
+    """
+    :type context: behave.runner.Context
+    :type tipo_fecha: str
+    :type fecha_valor: str
+    """
+    raise NotImplementedError(u'STEP: Entonces el asesor visualiza "<tipo_fecha>" como "<fecha_valor>"')
+
+
+@step("al revisar el historial de fechas, el asesor visualiza un registro con:")
 def step_impl(context: behave.runner.Context):
     """
     :type context: behave.runner.Context
     """
-    raise NotImplementedError(u'STEP: Y se registra un evento en el historial de fechas con:
-                              | usuario | < asesor_email > |
-          | campo | < tipo_fecha > |
-    | valorAnterior | < valor_anterior > |
+    raise NotImplementedError(u'STEP: Y al revisar el historial de fechas, el asesor visualiza un registro con:
+                              | usuario | asesor @ agencia.com |
+                              | campo | < tipo_fecha > |
+          | valorAnterior | < valor_anterior > |
     | valorNuevo | < fecha_valor > |
     | fecha | < fecha_evento > | ')
 
 
-@step('la fecha "(?P<fecha_valor>.+)" es anterior a "(?P<fecha_creacion>.+)"')
-def step_impl(context: behave.runner.Context, fecha_valor: str, fecha_creacion: str):
+@step('"(?P<fecha_valor>.+)" es anterior a "2026-01-10"')
+def step_impl(context: behave.runner.Context, fecha_valor: str):
     """
     :type context: behave.runner.Context
     :type fecha_valor: str
-    :type fecha_creacion: str
     """
-    raise NotImplementedError(u'STEP: Y la fecha "<fecha_valor>" es anterior a "<fecha_creacion>"')
+    raise NotImplementedError(u'STEP: Y "<fecha_valor>" es anterior a "2026-01-10"')
 
 
-@step("el sistema rechaza la asignación de fecha")
-def step_impl(context: behave.runner.Context):
-    """
-    :type context: behave.runner.Context
-    """
-    raise NotImplementedError(u'STEP: Entonces el sistema rechaza la asignación de fecha')
-
-
-@step('la solicitud no cambia el valor de "(?P<tipo_fecha>.+)"')
+@step('el asesor visualiza que "(?P<tipo_fecha>.+)" mantiene su valor anterior')
 def step_impl(context: behave.runner.Context, tipo_fecha: str):
     """
     :type context: behave.runner.Context
     :type tipo_fecha: str
     """
-    raise NotImplementedError(u'STEP: Y la solicitud no cambia el valor de "<tipo_fecha>"')
+    raise NotImplementedError(u'STEP: Y el asesor visualiza que "<tipo_fecha>" mantiene su valor anterior')
 
 
-@step('que la solicitud tiene "fechaRecepcionDocs" = "(?P<fecha_recepcion_docs>.+)"')
+@step('que el asesor visualiza "fechaRecepcionDocs" como "(?P<fecha_recepcion_docs>.+)"')
 def step_impl(context: behave.runner.Context, fecha_recepcion_docs: str):
     """
     :type context: behave.runner.Context
     :type fecha_recepcion_docs: str
     """
-    raise NotImplementedError(u'STEP: Dado que la solicitud tiene "fechaRecepcionDocs" = "<fecha_recepcion_docs>"')
+    raise NotImplementedError(u'STEP: Dado que el asesor visualiza "fechaRecepcionDocs" como "<fecha_recepcion_docs>"')
 
 
-@step('el resultado de la asignación es "(?P<resultado>.+)"')
-def step_impl(context: behave.runner.Context, resultado: str):
+@step('el asesor consulta el detalle de la solicitud "SOL-2026-0001"')
+def step_impl(context: behave.runner.Context):
     """
     :type context: behave.runner.Context
-    :type resultado: str
     """
-    raise NotImplementedError(u'STEP: Entonces el resultado de la asignación es "<resultado>"')
+    raise NotImplementedError(u'STEP: Cuando el asesor consulta el detalle de la solicitud "SOL-2026-0001"')
 
 
-@step('el asesor "(?P<asesor_email>.+)" consulta el detalle de la solicitud "(?P<solicitud_codigo>.+)"')
-def step_impl(context: behave.runner.Context, asesor_email: str, solicitud_codigo: str):
+@step("el asesor visualiza las fechas clave registradas:")
+def step_impl(context: behave.runner.Context):
     """
     :type context: behave.runner.Context
-    :type asesor_email: str
-    :type solicitud_codigo: str
+    """
+    raise NotImplementedError(u'STEP: Y el asesor visualiza las fechas clave registradas:
+                              | fechaCreacion | 2026 - 01 - 10 |
+                              | fechaUltimaActualizacion | 2026 - 01 - 10 |
+                              | fechaRecepcionDocs | (vacío) |
+                              | fechaEnvioSolicitud | (vacío) |
+                              | fechaCita | (vacío) | ')
+
+
+@step('el asesor consulta el historial de la solicitud "SOL-2026-0001"')
+def step_impl(context: behave.runner.Context):
+    """
+    :type context: behave.runner.Context
+    """
+    raise NotImplementedError(u'STEP: Cuando el asesor consulta el historial de la solicitud "SOL-2026-0001"')
+
+
+@step("el asesor visualiza los cambios de estado en orden cronológico descendente")
+def step_impl(context: behave.runner.Context):
+    """
+    :type context: behave.runner.Context
     """
     raise NotImplementedError(
-        u'STEP: Cuando el asesor "<asesor_email>" consulta el detalle de la solicitud "<solicitud_codigo>"')
+        u'STEP: Entonces el asesor visualiza los cambios de estado en orden cronológico descendente')
 
 
-@step('se muestra el estado actual "(?P<estado_esperado>.+)"')
-def step_impl(context: behave.runner.Context, estado_esperado: str):
-    """
-    :type context: behave.runner.Context
-    :type estado_esperado: str
-    """
-    raise NotImplementedError(u'STEP: Entonces se muestra el estado actual "<estado_esperado>"')
-
-
-@step("se muestran las fechas clave registradas:")
+@step("cada cambio de estado muestra: estado anterior, estado nuevo, usuario, fecha, motivo")
 def step_impl(context: behave.runner.Context):
     """
     :type context: behave.runner.Context
-    """
-    raise NotImplementedError(u'STEP: Y se muestran las fechas clave registradas:
-                              | fechaCreacion | < fecha_creacion > |
-          | fechaUltimaActualizacion | < fecha_ultima > |
-    | fechaRecepcionDocs | < fecha_rec_docs > |
-    | fechaEnvioSolicitud | < fecha_envio > |
-    | fechaCita | < fecha_cita > | ')
-
-
-@step('el asesor "(?P<asesor_email>.+)" consulta el historial de la solicitud "(?P<solicitud_codigo>.+)"')
-def step_impl(context: behave.runner.Context, asesor_email: str, solicitud_codigo: str):
-    """
-    :type context: behave.runner.Context
-    :type asesor_email: str
-    :type solicitud_codigo: str
     """
     raise NotImplementedError(
-        u'STEP: Cuando el asesor "<asesor_email>" consulta el historial de la solicitud "<solicitud_codigo>"')
+        u'STEP: Y cada cambio de estado muestra: estado anterior, estado nuevo, usuario, fecha, motivo')
 
 
-@step("se listan los cambios de estado en orden cronológico descendente")
+@step("el asesor visualiza los cambios de fechas en orden cronológico descendente")
 def step_impl(context: behave.runner.Context):
     """
     :type context: behave.runner.Context
     """
-    raise NotImplementedError(u'STEP: Entonces se listan los cambios de estado en orden cronológico descendente')
+    raise NotImplementedError(u'STEP: Y el asesor visualiza los cambios de fechas en orden cronológico descendente')
 
 
-@step("cada cambio incluye: estado anterior, estado nuevo, usuario, fecha, motivo")
+@step("cada cambio de fecha muestra: campo, valor anterior, valor nuevo, usuario, fecha")
 def step_impl(context: behave.runner.Context):
     """
     :type context: behave.runner.Context
     """
-    raise NotImplementedError(u'STEP: Y cada cambio incluye: estado anterior, estado nuevo, usuario, fecha, motivo')
-
-
-@step("se listan los cambios de fechas en orden cronológico descendente")
-def step_impl(context: behave.runner.Context):
-    """
-    :type context: behave.runner.Context
-    """
-    raise NotImplementedError(u'STEP: Y se listan los cambios de fechas en orden cronológico descendente')
-
-
-@step("cada cambio incluye: campo, valor anterior, valor nuevo, usuario, fecha")
-def step_impl(context: behave.runner.Context):
-    """
-    :type context: behave.runner.Context
-    """
-    raise NotImplementedError(u'STEP: Y cada cambio incluye: campo, valor anterior, valor nuevo, usuario, fecha')
+    raise NotImplementedError(
+        u'STEP: Y cada cambio de fecha muestra: campo, valor anterior, valor nuevo, usuario, fecha')

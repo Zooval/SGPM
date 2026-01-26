@@ -2,133 +2,138 @@
 # language: es
 
 @solicitudes @estado_fechas
-Característica: Control de estado y fechas respectivas de las solicitudes
-  Como agente de la agencia
-  Quiero controlar el estado y las fechas clave de una solicitud
+Característica: Control de estado y fechas clave de una solicitud
+  Como asesor
+  Quiero actualizar el estado y registrar fechas clave de una solicitud
   Para dar seguimiento, evitar inconsistencias y mantener trazabilidad
 
   Antecedentes:
-    Dado que existe un cliente con cédula "<cliente_cedula>" y correo "<cliente_correo>"
-    Y existe una solicitud con código "<solicitud_codigo>" para el cliente "<cliente_cedula>" con fecha de creación "<fecha_creacion>"
-    Y la solicitud tiene estado "<estado_inicial>"
+    Dado que existe un cliente con cédula "0912345678" y correo "cliente@mail.com"
+    Y existe una solicitud con código "SOL-2026-0001" para el cliente "0912345678" con fecha de creación "2026-01-10"
+    Y la solicitud está en estado "Creada"
+    Y el asesor autenticado es "asesor@agencia.com"
 
   @estado @avance_valido
-  Esquema del escenario: Avance válido del estado de una solicitud registra historial y fecha
+  Esquema del escenario: Cambiar a un estado permitido registra el cambio y actualiza la fecha
     Dado que la transición de "<estado_inicial>" a "<estado_nuevo>" está permitida
-    Cuando el asesor "<asesor_email>" cambia el estado a "<estado_nuevo>" con motivo "<motivo>"
-    Entonces la solicitud queda en estado "<estado_nuevo>"
-    Y se actualiza la fecha de última actualización a "<fecha_evento>"
-    Y se registra un evento en el historial con:
-      | usuario  | <asesor_email>   |
-      | anterior | <estado_inicial> |
-      | nuevo    | <estado_nuevo>   |
-      | fecha    | <fecha_evento>   |
-      | motivo   | <motivo>         |
+    Y la solicitud está en estado "<estado_inicial>"
+    Cuando el asesor cambia el estado a "<estado_nuevo>" indicando el motivo "<motivo>"
+    Entonces el asesor visualiza el estado actual como "<estado_nuevo>"
+    Y el asesor visualiza la "fechaUltimaActualizacion" como "<fecha_evento>"
+    Y al revisar el historial, el asesor visualiza un registro con:
+      | usuario  | asesor@agencia.com |
+      | anterior | <estado_inicial>   |
+      | nuevo    | <estado_nuevo>     |
+      | fecha    | <fecha_evento>     |
+      | motivo   | <motivo>           |
 
     Ejemplos:
-      | estado_inicial   | estado_nuevo   | asesor_email   | motivo   | fecha_evento   |
-      | <estado_inicial> | <estado_nuevo> | <asesor_email> | <motivo> | <fecha_evento> |
+      | estado_inicial | estado_nuevo  | motivo                 | fecha_evento |
+      | Creada         | En revisión   | Verificación inicial   | 2026-01-12   |
+      | En revisión    | Enviada       | Documentos completos   | 2026-01-15   |
+      | Enviada        | Aprobada      | Respuesta favorable    | 2026-01-20   |
 
   @estado @avance_invalido
-  Esquema del escenario: Prevención de avance inválido del proceso mantiene estado y no registra cambio
+  Esquema del escenario: Evitar una transición no permitida mantiene el estado y muestra el motivo
     Dado que la transición de "<estado_inicial>" a "<estado_nuevo>" no está permitida
-    Cuando el asesor "<asesor_email>" intenta cambiar el estado a "<estado_nuevo>" con motivo "<motivo>"
-    Entonces el sistema rechaza el cambio
-    Y la solicitud mantiene el estado "<estado_inicial>"
-    Y no se registra ningún evento de cambio de estado en el historial
-    Y el mensaje de error es "<mensaje_error>"
+    Y la solicitud está en estado "<estado_inicial>"
+    Cuando el asesor intenta cambiar el estado a "<estado_nuevo>" indicando el motivo "<motivo>"
+    Entonces el asesor visualiza el estado actual como "<estado_inicial>"
+    Y el asesor visualiza el mensaje "<mensaje_error>"
+    Y al revisar el historial, el asesor no visualiza un registro asociado a esta acción
 
     Ejemplos:
-      | estado_inicial   | estado_nuevo   | asesor_email   | motivo   | mensaje_error   |
-      | <estado_inicial> | <estado_nuevo> | <asesor_email> | <motivo> | <mensaje_error> |
+      | estado_inicial | estado_nuevo | motivo              | mensaje_error                          |
+      | Creada         | Aprobada     | Saltar revisión     | No se permite la transición solicitada |
+      | Aprobada       | En revisión  | Reabrir análisis    | No se permite la transición solicitada |
 
   @estado @rechazo_requiere_motivo
-  Esquema del escenario: Rechazada exige motivo obligatorio
+  Esquema del escenario: Rechazar exige motivo obligatorio
     Dado que la transición de "<estado_inicial>" a "Rechazada" está permitida
-    Cuando el asesor "<asesor_email>" cambia el estado a "Rechazada" con motivo "<motivo>"
-    Entonces el resultado del cambio es "<resultado>"
-    Y si el resultado es "rechazado" el mensaje de error es "<mensaje_error>"
+    Y la solicitud está en estado "<estado_inicial>"
+    Cuando el asesor cambia el estado a "Rechazada" indicando el motivo "<motivo>"
+    Entonces el asesor visualiza el resultado como "<resultado>"
+    Y si el resultado es "rechazado", el asesor visualiza el mensaje "<mensaje_error>"
 
     Ejemplos:
-      | estado_inicial   | asesor_email   | motivo   | resultado   | mensaje_error   |
-      | <estado_inicial> | <asesor_email> | <motivo> | <resultado> | <mensaje_error> |
+      | estado_inicial | motivo                       | resultado | mensaje_error                          |
+      | En revisión    | Documentación incompleta     | aceptado  |                                       |
+      | En revisión    |                             | rechazado | El motivo es obligatorio al rechazar  |
 
   @estado @archivada_bloquea
-  Esquema del escenario: Solicitud archivada no permite cambios de estado ni fechas
+  Esquema del escenario: Una solicitud archivada no permite cambios
     Dado que la solicitud está en estado "Archivada"
-    Cuando el asesor "<asesor_email>" intenta cambiar el estado a "<estado_nuevo>" con motivo "<motivo>"
-    Entonces el sistema rechaza la modificación
-    Y el mensaje de error es "<mensaje_error>"
+    Cuando el asesor intenta cambiar el estado a "<estado_nuevo>" indicando el motivo "<motivo>"
+    Entonces el asesor visualiza el estado actual como "Archivada"
+    Y el asesor visualiza el mensaje "<mensaje_error>"
+    Y al revisar el historial, el asesor no visualiza un registro asociado a esta acción
 
     Ejemplos:
-      | asesor_email   | estado_nuevo   | motivo   | mensaje_error   |
-      | <asesor_email> | <estado_nuevo> | <motivo> | <mensaje_error> |
+      | estado_nuevo | motivo          | mensaje_error                       |
+      | En revisión  | Retomar trámite | No se permiten cambios en Archivada |
+      | Rechazada    | Cerrar trámite  | No se permiten cambios en Archivada |
 
   @fechas @registrar_fecha
-  Esquema del escenario: Registrar una fecha clave válida en la solicitud
-    Dado que la fecha "<tipo_fecha>" es una fecha permitida del proceso
-    Y la fecha "<fecha_valor>" es igual o posterior a "<fecha_creacion>"
-    Cuando el asesor "<asesor_email>" asigna "<tipo_fecha>" con valor "<fecha_valor>"
-    Entonces la solicitud guarda "<tipo_fecha>" con valor "<fecha_valor>"
-    Y se actualiza la fecha de última actualización a "<fecha_evento>"
-    Y se registra un evento en el historial de fechas con:
-      | usuario       | <asesor_email>   |
-      | campo         | <tipo_fecha>     |
-      | valorAnterior | <valor_anterior> |
-      | valorNuevo    | <fecha_valor>    |
-      | fecha         | <fecha_evento>   |
+  Esquema del escenario: Registrar una fecha clave válida actualiza la solicitud y queda en el historial de fechas
+    Dado que "<tipo_fecha>" es un campo de fecha permitido del proceso
+    Y "<fecha_valor>" es igual o posterior a "2026-01-10"
+    Cuando el asesor asigna "<tipo_fecha>" con valor "<fecha_valor>"
+    Entonces el asesor visualiza "<tipo_fecha>" como "<fecha_valor>"
+    Y el asesor visualiza la "fechaUltimaActualizacion" como "<fecha_evento>"
+    Y al revisar el historial de fechas, el asesor visualiza un registro con:
+      | usuario       | asesor@agencia.com |
+      | campo         | <tipo_fecha>       |
+      | valorAnterior | <valor_anterior>   |
+      | valorNuevo    | <fecha_valor>      |
+      | fecha         | <fecha_evento>     |
 
     Ejemplos:
-      | fecha_creacion   | tipo_fecha   | valor_anterior   | fecha_valor   | asesor_email   | fecha_evento   |
-      | <fecha_creacion> | <tipo_fecha> | <valor_anterior> | <fecha_valor> | <asesor_email> | <fecha_evento> |
+      | tipo_fecha          | valor_anterior | fecha_valor  | fecha_evento |
+      | fechaRecepcionDocs  | (vacío)        | 2026-01-11    | 2026-01-11   |
+      | fechaEnvioSolicitud | (vacío)        | 2026-01-15    | 2026-01-15   |
+      | fechaCita           | (vacío)        | 2026-01-18    | 2026-01-16   |
 
   @fechas @fecha_invalida
-  Esquema del escenario: Bloquear fecha clave anterior a la fecha de creación
-    Dado que la fecha "<tipo_fecha>" es una fecha permitida del proceso
-    Y la fecha "<fecha_valor>" es anterior a "<fecha_creacion>"
-    Cuando el asesor "<asesor_email>" asigna "<tipo_fecha>" con valor "<fecha_valor>"
-    Entonces el sistema rechaza la asignación de fecha
-    Y la solicitud no cambia el valor de "<tipo_fecha>"
-    Y el mensaje de error es "<mensaje_error>"
+  Esquema del escenario: Bloquear una fecha anterior a la creación muestra el error y no cambia el valor
+    Dado que "<tipo_fecha>" es un campo de fecha permitido del proceso
+    Y "<fecha_valor>" es anterior a "2026-01-10"
+    Cuando el asesor asigna "<tipo_fecha>" con valor "<fecha_valor>"
+    Entonces el asesor visualiza el mensaje "<mensaje_error>"
+    Y el asesor visualiza que "<tipo_fecha>" mantiene su valor anterior
 
     Ejemplos:
-      | fecha_creacion   | tipo_fecha   | fecha_valor   | asesor_email   | mensaje_error   |
-      | <fecha_creacion> | <tipo_fecha> | <fecha_valor> | <asesor_email> | <mensaje_error> |
+      | tipo_fecha         | fecha_valor  | mensaje_error                                           |
+      | fechaRecepcionDocs | 2026-01-05   | La fecha no puede ser anterior a la fecha de creación   |
+      | fechaCita          | 2026-01-01   | La fecha no puede ser anterior a la fecha de creación   |
 
   @fechas @coherencia_fechas
-  Esquema del escenario: Validar coherencia entre recepción de documentos y envío de solicitud
-    Dado que la solicitud tiene "fechaRecepcionDocs" = "<fecha_recepcion_docs>"
-    Cuando el asesor "<asesor_email>" asigna "fechaEnvioSolicitud" con valor "<fecha_envio>"
-    Entonces el resultado de la asignación es "<resultado>"
-    Y si el resultado es "rechazado" el mensaje de error es "<mensaje_error>"
+  Esquema del escenario: No permitir que el envío sea anterior a la recepción de documentos
+    Dado que el asesor visualiza "fechaRecepcionDocs" como "<fecha_recepcion_docs>"
+    Cuando el asesor asigna "fechaEnvioSolicitud" con valor "<fecha_envio>"
+    Entonces el asesor visualiza el resultado como "<resultado>"
+    Y si el resultado es "rechazado", el asesor visualiza el mensaje "<mensaje_error>"
 
     Ejemplos:
-      | fecha_recepcion_docs   | fecha_envio   | asesor_email   | resultado   | mensaje_error   |
-      | <fecha_recepcion_docs> | <fecha_envio> | <asesor_email> | <resultado> | <mensaje_error> |
+      | fecha_recepcion_docs | fecha_envio  | resultado | mensaje_error                                                        |
+      | 2026-01-11           | 2026-01-15   | aceptado  |                                                                     |
+      | 2026-01-11           | 2026-01-10   | rechazado | La fecha de envío no puede ser anterior a la recepción de documentos |
 
   @consulta @detalle
-  Esquema del escenario: Consultar estado actual y fechas asociadas de la solicitud
-    Cuando el asesor "<asesor_email>" consulta el detalle de la solicitud "<solicitud_codigo>"
-    Entonces se muestra el estado actual "<estado_esperado>"
-    Y se muestran las fechas clave registradas:
-      | fechaCreacion            | <fecha_creacion> |
-      | fechaUltimaActualizacion | <fecha_ultima>   |
-      | fechaRecepcionDocs       | <fecha_rec_docs> |
-      | fechaEnvioSolicitud      | <fecha_envio>    |
-      | fechaCita                | <fecha_cita>     |
-
-    Ejemplos:
-      | asesor_email   | solicitud_codigo   | estado_esperado   | fecha_creacion   | fecha_ultima   | fecha_rec_docs   | fecha_envio   | fecha_cita   |
-      | <asesor_email> | <solicitud_codigo> | <estado_esperado> | <fecha_creacion> | <fecha_ultima> | <fecha_rec_docs> | <fecha_envio> | <fecha_cita> |
+  Escenario: Consultar el detalle muestra el estado y las fechas registradas
+    Cuando el asesor consulta el detalle de la solicitud "SOL-2026-0001"
+    Entonces el asesor visualiza el estado actual como "Creada"
+    Y el asesor visualiza las fechas clave registradas:
+      | fechaCreacion            | 2026-01-10 |
+      | fechaUltimaActualizacion | 2026-01-10 |
+      | fechaRecepcionDocs       | (vacío)    |
+      | fechaEnvioSolicitud      | (vacío)    |
+      | fechaCita                | (vacío)    |
 
   @consulta @historial
-  Esquema del escenario: Revisar historial de estados y fechas de la solicitud
-    Cuando el asesor "<asesor_email>" consulta el historial de la solicitud "<solicitud_codigo>"
-    Entonces se listan los cambios de estado en orden cronológico descendente
-    Y cada cambio incluye: estado anterior, estado nuevo, usuario, fecha, motivo
-    Y se listan los cambios de fechas en orden cronológico descendente
-    Y cada cambio incluye: campo, valor anterior, valor nuevo, usuario, fecha
+  Escenario: Consultar el historial muestra cambios de estado y fechas en orden reciente
+    Cuando el asesor consulta el historial de la solicitud "SOL-2026-0001"
+    Entonces el asesor visualiza los cambios de estado en orden cronológico descendente
+    Y cada cambio de estado muestra: estado anterior, estado nuevo, usuario, fecha, motivo
+    Y el asesor visualiza los cambios de fechas en orden cronológico descendente
+    Y cada cambio de fecha muestra: campo, valor anterior, valor nuevo, usuario, fecha
 
-    Ejemplos:
-      | asesor_email   | solicitud_codigo   |
-      | <asesor_email> | <solicitud_codigo> |
