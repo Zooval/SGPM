@@ -1,7 +1,9 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("SGPM.urls")),   # <-- esto conecta tus rutas
+    path("", RedirectView.as_view(url="/login/", permanent=False)),  # raíz -> login
+    path("", include("SGPM.presentation.urls")),
 ]

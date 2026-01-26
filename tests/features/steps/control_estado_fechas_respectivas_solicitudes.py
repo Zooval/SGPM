@@ -1,7 +1,7 @@
 import behave.runner
 from behave import *
 
-use_step_matcher("re")
+use_step_matcher("parse")
 
 
 @step('que existe un cliente con cédula "0912345678" y correo "cliente@mail\.com"')
@@ -296,3 +296,11 @@ def step_impl(context: behave.runner.Context):
     """
     raise NotImplementedError(
         u'STEP: Y cada cambio de fecha muestra: campo, valor anterior, valor nuevo, usuario, fecha')
+
+
+@step('que existe un cliente con cédula "0912345678" y correo "cliente@mail.com"')
+def step_impl(context: behave.runner.Context):
+    """
+    :type context: behave.runner.Context
+    """
+    raise NotImplementedError(u'STEP: Dado que existe un cliente con cédula "0912345678" y correo "cliente@mail.com"')
