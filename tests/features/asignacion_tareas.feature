@@ -1,48 +1,53 @@
 # Created by ximen at 10/1/2026
 # language: es
 
-Característica: Asignación de tareas
-  Como supervisor del sistema
+@tareas @asignacion
+Característica: Asignación de tareas a asesores
+  Como supervisor
   Quiero asignar y gestionar tareas
-  Para controlar el trabajo de los asesores
+  Para asegurar el seguimiento del trabajo de los asesores
+
+  Antecedentes:
+    Dado que existe un supervisor autenticado con correo "supervisor@sistema.com"
+    Y existe un asesor con identificador "ASE-001" y correo "asesor@sistema.com"
 
   Escenario: Asignar una tarea a un asesor
-    Dado que un supervisor ha iniciado sesión
-    Y existe un asesor registrado
-    Cuando el supervisor asigna una tarea al asesor
-    Entonces la tarea queda registrada en el sistema
-    Y la tarea tiene estado "PENDIENTE"
+    Dado que existe una tarea con código "TAR-001" y prioridad "Media"
+    Cuando el supervisor asigna la tarea "TAR-001" al asesor "ASE-001"
+    Entonces la tarea "TAR-001" queda asignada al asesor "ASE-001"
+    Y la tarea tiene estado "Asignada"
 
   Escenario: Asignar múltiples tareas a un asesor
-    Dado que un supervisor ha iniciado sesión
-    Y un asesor tiene tareas previamente asignadas
-    Cuando el supervisor asigna una nueva tarea al asesor
-    Entonces el sistema registra la nueva tarea
-    Y las tareas anteriores del asesor se mantienen
+    Dado que el asesor "ASE-001" tiene tareas previamente asignadas
+      | codigo   |
+      | TAR-002  |
+      | TAR-003  |
+    Y existe una tarea con código "TAR-004" y prioridad "Alta"
+    Cuando el supervisor asigna la tarea "TAR-004" al asesor "ASE-001"
+    Entonces el asesor "ASE-001" mantiene sus tareas anteriores
+    Y el asesor "ASE-001" tiene asignada la tarea "TAR-004"
 
   Escenario: Asignar una tarea con fecha de vencimiento
-    Dado que un supervisor está asignando una tarea
-    Cuando el supervisor ingresa una fecha de vencimiento
-    Y guarda la tarea
-    Entonces la tarea se guarda con una fecha de vencimiento a 24 horas
+    Dado que existe una tarea con código "TAR-005" y prioridad "Alta"
+    Cuando el supervisor asigna la tarea "TAR-005" al asesor "ASE-001" con fecha de vencimiento "2026-01-20"
+    Entonces la tarea "TAR-005" registra la fecha de vencimiento "2026-01-20"
 
   Escenario: Enviar notificación al asesor
-    Dado que una tarea ha sido asignada a un asesor
-    Cuando la asignación se completa
-    Entonces el asesor recibe una notificación de la nueva tarea
+    Dado que la tarea "TAR-006" está asignada al asesor "ASE-001"
+    Cuando el proceso de asignación finaliza
+    Entonces el asesor "ASE-001" recibe una notificación de nueva tarea
 
-  Escenario: Enviar recordatorio al asesor
-    Dado que un asesor tiene una tarea asignada
-    Y la tarea tiene una fecha de vencimiento definida
-    Cuando faltan 24 horas para el vencimiento
-    Entonces el sistema envía un recordatorio al asesor
+  Escenario: Enviar recordatorio antes del vencimiento
+    Dado que la tarea "TAR-007" está asignada al asesor "ASE-001" con fecha de vencimiento "2026-01-20"
+    Cuando se alcanza 24 horas antes de la fecha de vencimiento
+    Entonces el sistema envía un recordatorio al asesor "ASE-001"
 
   Escenario: Cambiar estado de una tarea
-    Dado que un asesor tiene una tarea asignada
-    Cuando el asesor cambia el estado de la tarea
-    Entonces el sistema guarda el nuevo estado de la tarea
+    Dado que la tarea "TAR-008" está asignada al asesor "ASE-001"
+    Cuando el asesor cambia el estado de la tarea a "Completada"
+    Entonces la tarea "TAR-008" queda en estado "Completada"
 
   Escenario: Editar una tarea asignada
-    Dado que existe una tarea asignada a un asesor
-    Cuando el supervisor edita la información de la tarea
-    Entonces el sistema guarda los cambios realizados
+    Dado que la tarea "TAR-009" está asignada al asesor "ASE-001"
+    Cuando el supervisor actualiza la prioridad de la tarea a "Alta"
+    Entonces la tarea "TAR-009" refleja la prioridad "Alta"
