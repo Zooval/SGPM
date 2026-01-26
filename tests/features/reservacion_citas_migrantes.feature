@@ -8,18 +8,18 @@ Característica: Gestión de citas migratorias
 
 Antecedentes:
   Dado que el empleado Juan Pérez se encuentra autenticado en el sistema
-  Y existe un migrante registrado con nombre "María López" y documento "ABC123"
+  Y existe un migrante registrado con nombre María López y documento ABC123
   Y el sistema de gestión de citas se encuentra disponible
 
 Escenario: Creación de una cita válida
-  Cuando el empleado reserva una cita para el migrante "María López"
-  Y ingresa la fecha "19-04-2025" y la hora "10:00"
-  Entonces la cita queda registrada asociada al migrante
-  Y la cita tiene como responsable al empleado "Juan Pérez"
+  Cuando el empleado reserva una cita para el migrante
+  Y ingresa la fecha 19-04-2025 y la hora 10:00
+  Entonces la cita queda registrada asociada al migrante con la fecha y hora establecida
+  Y la cita tiene como responsable al empleado
 
 Escenario: Prevención de conflictos de horario
-  Dado que el empleado tiene una cita registrada el día "19-04-2025" a las "10:00"
-  Cuando intenta reservar otra cita para el mismo día "19-04-2025" a las "10:00"
+  Dado que el empleado tiene una cita registrada el día 19-04-2025 a las 10:00
+  Cuando intenta reservar otra cita para el mismo día 19-04-2025 a las 10:00
   Entonces el sistema impide la reserva
   Y solicita seleccionar un horario diferente
 
