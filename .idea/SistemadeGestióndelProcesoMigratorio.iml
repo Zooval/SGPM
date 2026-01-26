@@ -14,16 +14,12 @@
   </component>
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$" />
+<<<<<<< Updated upstream
     <orderEntry type="jdk" jdkName="Python 3.13 (SistemadeGestióndelProcesoMigratorio)" jdkType="Python SDK" />
+=======
+    <orderEntry type="jdk" jdkName="Python 3.11" jdkType="Python SDK" />
+>>>>>>> Stashed changes
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="bootstrap" level="application" />
-  </component>
-  <component name="TemplatesService">
-    <option name="TEMPLATE_CONFIGURATION" value="Django" />
-    <option name="TEMPLATE_FOLDERS">
-      <list>
-        <option value="$MODULE_DIR$/../SistemadeGestióndelProcesoMigratorio\templates" />
-      </list>
-    </option>
   </component>
 </module>
