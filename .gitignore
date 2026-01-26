@@ -100,3 +100,6 @@ $RECYCLE.BIN/
 .pyre/
 .pytype/
 .ruff_cache/
+
+.idea/
+*.iml
