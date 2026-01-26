@@ -53,7 +53,7 @@ Característica: Control de estado y fechas clave de una solicitud
     Y la solicitud está en estado "<estado_inicial>"
     Cuando el asesor cambia el estado a "Rechazada" indicando el motivo "<motivo>"
     Entonces el asesor visualiza el resultado como "<resultado>"
-    Y si el resultado es "rechazado", el asesor visualiza el mensaje "<mensaje_error>"
+    Y el asesor visualiza el mensaje "<mensaje_error>"
 
     Ejemplos:
       | estado_inicial | motivo                   | resultado | mensaje_error                         |

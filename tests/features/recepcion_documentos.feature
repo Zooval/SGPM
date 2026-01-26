@@ -1,9 +1,6 @@
 # Created by ximen at 10/1/2026
 # language: es
 
-
-
-
 Característica: Recepción de documentos
   Como asesor migratorio
   Quiero gestionar los documentos de los migrantes

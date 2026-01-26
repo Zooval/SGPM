@@ -77,38 +77,110 @@ def parse_estado_solicitud(texto: str) -> EstadoSolicitud:
 # =========================
 # Entidades (UML)
 # =========================
-@dataclass
 class Solicitante:
-    cedula: str
-    nombres: str
-    apellidos: str
-    correo: str
-    telefono: str
-    fechaNacimiento: date
+    """Representa al solicitante/migrante según el diagrama"""
 
-    # Relación UML: Solicitante tiene varios documentos
-    documentos: List["Documento"] = field(default_factory=list)
+    def __init__(self, cedula, nombres, apellidos, correo, telefono, fechaNacimiento=None):
+        self._cedula = cedula
+        self._nombres = nombres
+        self._apellidos = apellidos
+        self._correo = correo
+        self._telefono = telefono
+        self._fecha_nacimiento = fechaNacimiento
+
+        # Relación UML: Solicitante tiene varios documentos
+        self._documentos: List["Documento"] = []
+
+    def existe(self):
+        """Verifica si el solicitante está registrado correctamente"""
+        return self._cedula is not None and len(self._cedula) > 0
+
+    def obtener_cedula(self):
+        """Retorna la cédula del solicitante"""
+        return self._cedula
+
+    def obtener_correo(self):
+        """Retorna el correo del solicitante"""
+        return self._correo
+
+    def obtener_nombre_completo(self):
+        """Retorna el nombre completo del solicitante"""
+        return f"{self._nombres} {self._apellidos}"
 
     def agregar_documento(self, documento: "Documento") -> None:
-        self.documentos.append(documento)
+        self._documentos.append(documento)
+
+    def obtener_documentos(self) -> List["Documento"]:
+        return self._documentos
 
 
-@dataclass
 class Asesor:
-    nombres: str
-    apellidos: str
-    emailAsesor: str
-    rol: RolUsuario = RolUsuario.ASESOR
+    """Representa un asesor según el diagrama UML"""
+
+    def __init__(self, nombres: str, apellidos: str, emailAsesor: str, rol: RolUsuario = RolUsuario.ASESOR):
+        self.nombres = nombres
+        self.apellidos = apellidos
+        self.emailAsesor = emailAsesor
+        self.rol = rol
+        self._tareas_asignadas: List["Tarea"] = []
+
+    def asignar_tarea(self, tarea: "Tarea") -> None:
+        """Asigna una tarea a este asesor"""
+        if tarea not in self._tareas_asignadas:
+            self._tareas_asignadas.append(tarea)
+
+    def obtener_tareas(self) -> List["Tarea"]:
+        """Retorna la lista de tareas asignadas al asesor"""
+        return self._tareas_asignadas.copy()
+
+    def tiene_tarea(self, id_tarea: str) -> bool:
+        """Verifica si el asesor tiene asignada una tarea específica"""
+        return any(t.idTarea == id_tarea for t in self._tareas_asignadas)
+
+    def obtener_nombre_completo(self) -> str:
+        """Retorna el nombre completo del asesor"""
+        return f"{self.nombres} {self.apellidos}"
 
 
-@dataclass
 class Documento:
-    idDocumento: str
-    tipo: TipoDocumento
-    estado: EstadoDocumento
-    fechaExpiracion: date
-    versionActual: int
-    observacion: str = ""
+    """Representa un documento según el diagrama"""
+
+    def __init__(self, id_documento, tipo, estado=EstadoDocumento.RECIBIDO):
+        self._id = id_documento
+        self._tipo = tipo
+        self._estado = estado
+        self._fecha_expiracion = None
+        self._version_actual = 1
+        self._observacion = None
+
+    def obtener_tipo(self):
+        """Retorna el tipo del documento"""
+        return self._tipo
+
+    def obtener_id(self):
+        """Retorna el ID del documento"""
+        return self._id
+
+    def marcar_como_rechazado(self, observacion):
+        """Marca el documento como rechazado con una observación"""
+        self._estado = EstadoDocumento.RECHAZADO
+        self._observacion = observacion
+
+    def marcar_como_aprobado(self):
+        """Marca el documento como aprobado"""
+        self._estado = EstadoDocumento.APROBADO
+
+    def esta_rechazado(self):
+        """Verifica si el documento está rechazado"""
+        return self._estado == EstadoDocumento.RECHAZADO
+
+    def esta_aprobado(self):
+        """Verifica si el documento está aprobado"""
+        return self._estado == EstadoDocumento.APROBADO
+
+    def tiene_observacion(self):
+        """Verifica si el documento tiene observación registrada"""
+        return self._observacion is not None and len(self._observacion) > 0
 
 
 @dataclass
@@ -121,106 +193,279 @@ class Cita:
     estado: EstadoCita
 
 
-@dataclass
 class Tarea:
-    idTarea: str
-    asignadaA: Asesor            # <- según tu pedido: tarea asignada a asesor
-    vencimiento: datetime
-    estado: EstadoTarea
-    prioridad: PrioridadTarea
-    comentario: str
-    titulo: str
+    """Representa una tarea según el diagrama UML"""
+
+    def __init__(self, idTarea: str, titulo: str, prioridad: PrioridadTarea,
+                 vencimiento: Optional[datetime] = None, comentario: str = "",
+                 estado: EstadoTarea = EstadoTarea.PENDIENTE,
+                 asignadaA: Optional[Asesor] = None):
+        self.idTarea = idTarea
+        self.titulo = titulo
+        self.prioridad = prioridad
+        self.vencimiento = vencimiento
+        self.comentario = comentario
+        self.estado = estado
+        self.asignadaA = asignadaA
+
+    def asignar_a_asesor(self, asesor: Asesor) -> None:
+        """Asigna la tarea a un asesor"""
+        self.asignadaA = asesor
+        asesor.asignar_tarea(self)
+
+    def cambiar_estado(self, nuevo_estado: EstadoTarea) -> None:
+        """Cambia el estado de la tarea con validación de transiciones"""
+        from .exceptions import TransicionEstadoTareaNoPermitida
+
+        transiciones_validas = {
+            EstadoTarea.PENDIENTE: {EstadoTarea.EN_PROGRESO, EstadoTarea.CANCELADA},
+            EstadoTarea.EN_PROGRESO: {EstadoTarea.COMPLETADA, EstadoTarea.CANCELADA, EstadoTarea.PENDIENTE},
+            EstadoTarea.COMPLETADA: set(),
+            EstadoTarea.CANCELADA: {EstadoTarea.PENDIENTE}
+        }
+
+        if nuevo_estado not in transiciones_validas.get(self.estado, set()):
+            raise TransicionEstadoTareaNoPermitida(
+                f"No se puede cambiar de {self.estado.value} a {nuevo_estado.value}"
+            )
+
+        self.estado = nuevo_estado
+
+    def actualizar_prioridad(self, nueva_prioridad: PrioridadTarea) -> None:
+        """Actualiza la prioridad de la tarea"""
+        self.prioridad = nueva_prioridad
+
+    def establecer_vencimiento(self, fecha_vencimiento: datetime) -> None:
+        """Establece la fecha de vencimiento de la tarea"""
+        self.vencimiento = fecha_vencimiento
+
+    def esta_asignada(self) -> bool:
+        """Verifica si la tarea está asignada a algún asesor"""
+        return self.asignadaA is not None
+
+    def esta_completada(self) -> bool:
+        """Verifica si la tarea está completada"""
+        return self.estado == EstadoTarea.COMPLETADA
+
+    def esta_vencida(self) -> bool:
+        """Verifica si la tarea está vencida"""
+        if self.vencimiento is None:
+            return False
+        return datetime.now() > self.vencimiento and not self.esta_completada()
+
+    def requiere_recordatorio(self) -> bool:
+        """Verifica si la tarea requiere un recordatorio (24 horas antes del vencimiento)"""
+        if self.vencimiento is None or self.esta_completada():
+            return False
+
+        from datetime import timedelta
+        tiempo_restante = self.vencimiento - datetime.now()
+        return timedelta(hours=0) <= tiempo_restante <= timedelta(hours=24)
 
 
-@dataclass
 class Notificacion:
-    idNotificacion: str
-    destinatario: str            # <- email solo str
-    tipo: TipoNotificacion
-    mensaje: str
-    creadaEn: datetime
+    """Representa una notificación según el diagrama"""
+
+    def __init__(self, id_notificacion, destinatario, tipo, mensaje):
+        self._id = id_notificacion
+        self._destinatario = destinatario
+        self._tipo = tipo
+        self._mensaje = mensaje
+        self._creada_en = datetime.now()
+        self._leida = False
+
+    def fue_creada(self):
+        """Verifica si la notificación fue creada correctamente"""
+        return self._id is not None and self._mensaje is not None
+
+    def obtener_destinatario(self) -> str:
+        """Retorna el destinatario de la notificación"""
+        return self._destinatario
+
+    def obtener_tipo(self) -> TipoNotificacion:
+        """Retorna el tipo de notificación"""
+        return self._tipo
+
+    def obtener_mensaje(self) -> str:
+        """Retorna el mensaje de la notificación"""
+        return self._mensaje
+
+    def marcar_como_leida(self) -> None:
+        """Marca la notificación como leída"""
+        self._leida = True
+
+    def esta_leida(self) -> bool:
+        """Verifica si la notificación fue leída"""
+        return self._leida
+
+    @staticmethod
+    def crear_notificacion_asignacion_tarea(id_notificacion: str, asesor: Asesor, tarea: "Tarea") -> "Notificacion":
+        """Crea una notificación de asignación de tarea"""
+        mensaje = f"Se te ha asignado la tarea '{tarea.titulo}' con prioridad {tarea.prioridad.value}"
+        return Notificacion(
+            id_notificacion=id_notificacion,
+            destinatario=asesor.emailAsesor,
+            tipo=TipoNotificacion.ASIGNACION_TAREA,
+            mensaje=mensaje
+        )
+
+    @staticmethod
+    def crear_recordatorio_vencimiento(id_notificacion: str, asesor: Asesor, tarea: "Tarea") -> "Notificacion":
+        """Crea un recordatorio de vencimiento de tarea"""
+        mensaje = f"Recordatorio: La tarea '{tarea.titulo}' vence el {tarea.vencimiento.strftime('%Y-%m-%d')}"
+        return Notificacion(
+            id_notificacion=id_notificacion,
+            destinatario=asesor.emailAsesor,
+            tipo=TipoNotificacion.RECORDATORIO,
+            mensaje=mensaje
+        )
 
 
-@dataclass
 class SolicitudMigratoria:
-    codigo: str
-    tipoServicio: TipoServicio
-    estadoActual: EstadoSolicitud
-    fechaCreación: datetime
-    fechaExpiracion: datetime
+    """Representa la solicitud migratoria según el diagrama"""
 
-    # Relaciones de negocio (UML)
-    solicitante: Optional[Solicitante] = None
-    asesor: Optional[Asesor] = None
-    citas: List[Cita] = field(default_factory=list)
-    tareas: List[Tarea] = field(default_factory=list)
-    notificaciones: List[Notificacion] = field(default_factory=list)
+    def __init__(self, codigo: str, tipoServicio: Optional[TipoServicio] = None,
+                 estadoActual: Optional[EstadoSolicitud] = None,
+                 fechaCreación: Optional[datetime] = None, fechaExpiracion: Optional[datetime] = None,
+                 solicitante: Optional[Solicitante] = None, asesor: Optional[Asesor] = None,
+                 # Aliases para compatibilidad
+                 tipo_servicio: Optional[TipoServicio] = None, estado_actual: Optional[EstadoSolicitud] = None,
+                 fecha_creacion: Optional[datetime] = None, fecha_expiracion: Optional[datetime] = None):
+        # -------------------------
+        # Atributos principales (compatibilidad con ambos formatos)
+        # -------------------------
+        self._codigo = codigo
+        self._tipo_servicio = tipoServicio or tipo_servicio
+        self._estado_actual = estadoActual or estado_actual or EstadoSolicitud.CREADA
+        self._fecha_creacion = fechaCreación or fecha_creacion or datetime.now()
+        self._fecha_expiracion = fechaExpiracion or fecha_expiracion or datetime.now()
 
-    # ===== Interno para BDD (sin agregar nuevas "clases")
-    _historial_estados: List[Dict[str, Any]] = field(default_factory=list, repr=False)
-    _historial_fechas: List[Dict[str, Any]] = field(default_factory=list, repr=False)
-    _fechas_proceso: Dict[str, Optional[str]] = field(default_factory=dict, repr=False)  # strings ISO
+        # -------------------------
+        # Relaciones UML
+        # -------------------------
+        self._solicitante = solicitante
+        self._asesor = asesor
+        self._citas: List[Cita] = []
+        self._tareas: List[Tarea] = []
+        self._notificaciones: List[Notificacion] = []
+        self._documentos: List[Documento] = []
+        self._documentos_requeridos: List[TipoDocumento] = []
 
-    def __post_init__(self) -> None:
-        # Para tus .feature: fechaUltimaActualizacion debe existir
-        self._fechas_proceso.setdefault("fechaCreacion", self.fechaCreación.date().isoformat())
-        self._fechas_proceso.setdefault("fechaUltimaActualizacion", self.fechaCreación.date().isoformat())
-        self._fechas_proceso.setdefault("fechaRecepcionDocs", None)
-        self._fechas_proceso.setdefault("fechaEnvioSolicitud", None)
-        self._fechas_proceso.setdefault("fechaCita", None)
+        # -------------------------
+        # Interno para BDD
+        # -------------------------
+        self._historial_estados: List[Dict[str, Any]] = []
+        self._historial_fechas: List[Dict[str, Any]] = []
+        self._fechas_proceso: Dict[str, Optional[str]] = {
+            "fechaCreacion": self._fecha_creacion.date().isoformat(),
+            "fechaUltimaActualizacion": self._fecha_creacion.date().isoformat(),
+            "fechaRecepcionDocs": None,
+            "fechaEnvioSolicitud": None,
+            "fechaCita": None,
+        }
 
-    # -------------------------
+    # =====================================================
     # Vincular relaciones
-    # -------------------------
+    # =====================================================
     def asignar_solicitante(self, solicitante: Solicitante) -> None:
-        self.solicitante = solicitante
+        self._solicitante = solicitante
 
     def asignar_asesor(self, asesor: Asesor) -> None:
-        self.asesor = asesor
+        self._asesor = asesor
 
     def agregar_cita(self, cita: Cita) -> None:
-        self.citas.append(cita)
+        self._citas.append(cita)
 
     def agregar_tarea(self, tarea: Tarea) -> None:
-        self.tareas.append(tarea)
+        self._tareas.append(tarea)
 
     def agregar_notificacion(self, notificacion: Notificacion) -> None:
-        self.notificaciones.append(notificacion)
+        self._notificaciones.append(notificacion)
 
-    # -------------------------
-    # Reglas de negocio para BDD: estados + historial + fechaUltimaActualizacion
-    # -------------------------
+    # =====================================================
+    # Propiedades de acceso
+    # =====================================================
+    @property
+    def codigo(self) -> str:
+        return self._codigo
+
+    @property
+    def estadoActual(self) -> EstadoSolicitud:
+        return self._estado_actual
+
+    @estadoActual.setter
+    def estadoActual(self, valor: EstadoSolicitud) -> None:
+        self._estado_actual = valor
+
+    @property
+    def fechaCreación(self) -> datetime:
+        return self._fecha_creacion
+
+    @property
+    def tipoServicio(self) -> Optional[TipoServicio]:
+        return self._tipo_servicio
+
+    # =====================================================
+    # Estados y transiciones (BDD)
+    # =====================================================
     def _transiciones_permitidas(self) -> Dict[EstadoSolicitud, set[EstadoSolicitud]]:
         return {
-            EstadoSolicitud.CREADA: {EstadoSolicitud.EN_REVISION, EstadoSolicitud.CERRADA},
+            EstadoSolicitud.CREADA: {
+                EstadoSolicitud.EN_REVISION,
+                EstadoSolicitud.CERRADA,
+            },
             EstadoSolicitud.EN_REVISION: {
                 EstadoSolicitud.DOCUMENTOS_PENDIENTES,
                 EstadoSolicitud.ENVIADA,
                 EstadoSolicitud.RECHAZADA,
                 EstadoSolicitud.CERRADA,
             },
-            EstadoSolicitud.DOCUMENTOS_PENDIENTES: {EstadoSolicitud.EN_REVISION, EstadoSolicitud.CERRADA},
-            EstadoSolicitud.ENVIADA: {EstadoSolicitud.APROBADA, EstadoSolicitud.RECHAZADA, EstadoSolicitud.CERRADA},
+            EstadoSolicitud.DOCUMENTOS_PENDIENTES: {
+                EstadoSolicitud.EN_REVISION,
+                EstadoSolicitud.CERRADA,
+            },
+            EstadoSolicitud.ENVIADA: {
+                EstadoSolicitud.APROBADA,
+                EstadoSolicitud.RECHAZADA,
+                EstadoSolicitud.CERRADA,
+            },
             EstadoSolicitud.APROBADA: {EstadoSolicitud.CERRADA},
             EstadoSolicitud.RECHAZADA: {EstadoSolicitud.CERRADA},
             EstadoSolicitud.CERRADA: set(),
         }
 
     def transicion_permitida(self, nuevo: EstadoSolicitud) -> bool:
-        return nuevo in self._transiciones_permitidas().get(self.estadoActual, set())
+        return nuevo in self._transiciones_permitidas().get(
+            self._estado_actual, set()
+        )
 
-    def cambiar_estado(self, *, nuevo: EstadoSolicitud, usuario: str, motivo: str, fecha_evento: Optional[datetime] = None) -> None:
+    def cambiar_estado(self, *, nuevo: EstadoSolicitud, usuario: str, motivo: str,
+                       fecha_evento: Optional[datetime] = None, ) -> None:
+        # Validar que no se cambie desde estado CERRADA (equivalente a Archivada)
+        if self._estado_actual == EstadoSolicitud.CERRADA:
+            raise TransicionEstadoNoPermitida(
+                "No se permiten cambios en Archivada"
+            )
+
+        # Validar motivo obligatorio para rechazar
+        if nuevo == EstadoSolicitud.RECHAZADA and (not motivo or motivo.strip() == ""):
+            raise TransicionEstadoNoPermitida(
+                "El motivo es obligatorio al rechazar"
+            )
+
         if not self.transicion_permitida(nuevo):
-            raise TransicionEstadoNoPermitida(f"Transición inválida: {self.estadoActual.value} -> {nuevo.value}")
+            raise TransicionEstadoNoPermitida(
+                "No se permite la transición solicitada"
+            )
 
         fecha_evento = fecha_evento or datetime.utcnow()
-        anterior = self.estadoActual
-        self.estadoActual = nuevo
+        anterior = self._estado_actual
+        self._estado_actual = nuevo
 
-        # actualizar fechaUltimaActualizacion para tus asserts
-        self._fechas_proceso["fechaUltimaActualizacion"] = fecha_evento.date().isoformat()
+        self._fechas_proceso["fechaUltimaActualizacion"] = (
+            fecha_evento.date().isoformat()
+        )
 
-        # registrar historial (para tabla de tu .feature)
         self._historial_estados.append(
             {
                 "usuario": usuario,
@@ -232,34 +477,40 @@ class SolicitudMigratoria:
         )
 
     def obtener_historial_estados(self) -> List[Dict[str, Any]]:
-        # orden cronológico descendente (tu feature lo pide)
-        return sorted(self._historial_estados, key=lambda x: x["fecha"], reverse=True)
+        return sorted(
+            self._historial_estados,
+            key=lambda x: x["fecha"],
+            reverse=True,
+        )
 
-    # -------------------------
-    # Fechas del proceso (para BDD): asignación + historial
-    # Campos esperados por tu feature:
-    # fechaRecepcionDocs, fechaEnvioSolicitud, fechaCita
-    # -------------------------
+    # =====================================================
+    # Fechas del proceso (BDD)
+    # =====================================================
     def _campos_fecha_permitidos(self) -> set[str]:
         return {"fechaRecepcionDocs", "fechaEnvioSolicitud", "fechaCita"}
 
-    def asignar_fecha_proceso(
-        self,
-        *,
-        campo: str,
-        valor_iso: str,
-        usuario: str,
-        fecha_evento: Optional[datetime] = None,
-    ) -> None:
+    def asignar_fecha_proceso(self, *, campo: str, valor_iso: str, usuario: str,
+                              fecha_evento: Optional[datetime] = None, ) -> None:
         if campo not in self._campos_fecha_permitidos():
             raise CampoFechaNoPermitido(f"Campo no permitido: {campo}")
 
         fecha_evento = fecha_evento or datetime.utcnow()
-
-        # regla de tu feature: fecha >= fechaCreacion
         valor_date = parse_date_iso(valor_iso)
-        if valor_date < self.fechaCreación.date():
-            raise FechaInvalida(f"{campo} no puede ser anterior a la fecha de creación")
+
+        if valor_date < self._fecha_creacion.date():
+            raise FechaInvalida(
+                "La fecha no puede ser anterior a la fecha de creación"
+            )
+
+        # Validar coherencia: fechaEnvioSolicitud no puede ser anterior a fechaRecepcionDocs
+        if campo == "fechaEnvioSolicitud":
+            fecha_recepcion = self._fechas_proceso.get("fechaRecepcionDocs")
+            if fecha_recepcion is not None:
+                fecha_recepcion_date = parse_date_iso(fecha_recepcion)
+                if valor_date < fecha_recepcion_date:
+                    raise FechaInvalida(
+                        "La fecha de envío no puede ser anterior a la recepción de documentos"
+                    )
 
         anterior = self._fechas_proceso.get(campo)
         self._fechas_proceso[campo] = valor_date.isoformat()
@@ -278,7 +529,6 @@ class SolicitudMigratoria:
         return self._fechas_proceso.get(campo)
 
     def obtener_fechas_clave(self) -> Dict[str, Optional[str]]:
-        # exactamente en los nombres del feature (camelCase)
         return {
             "fechaCreacion": self._fechas_proceso.get("fechaCreacion"),
             "fechaUltimaActualizacion": self._fechas_proceso.get("fechaUltimaActualizacion"),
@@ -288,4 +538,57 @@ class SolicitudMigratoria:
         }
 
     def obtener_historial_fechas(self) -> List[Dict[str, Any]]:
-        return sorted(self._historial_fechas, key=lambda x: x["fecha"], reverse=True)
+        return sorted(
+            self._historial_fechas,
+            key=lambda x: x["fecha"],
+            reverse=True,
+        )
+
+    # =====================================================
+    # Documentos (flujo operativo)
+    # =====================================================
+    def tiene_proceso_activo(self) -> bool:
+        """Verifica si existe un proceso de visa activo"""
+        return self._codigo is not None
+
+    def agregar_documento(self, documento: "Documento") -> None:
+        """Añade un documento a la solicitud"""
+        self._documentos.append(documento)
+
+    def obtener_documentos(self):
+        """Retorna la lista de documentos"""
+        return self._documentos
+
+    def obtener_documentos_faltantes(self):
+        """Retorna lista de tipos de documentos que faltan"""
+        tipos_presentes = {doc.obtener_tipo() for doc in self._documentos}
+        return [
+            tipo
+            for tipo in self._documentos_requeridos
+            if tipo not in tipos_presentes
+        ]
+
+    def tiene_documentos_faltantes(self) -> bool:
+        """Verifica si faltan documentos requeridos"""
+        return len(self.obtener_documentos_faltantes()) > 0
+
+    def esta_completa(self) -> bool:
+        """Valida que todos los documentos requeridos estén presentes y aprobados"""
+        if self.tiene_documentos_faltantes():
+            return False
+        return all(doc.esta_aprobado() for doc in self._documentos)
+
+    # =====================================================
+    # Estado (consultas simples)
+    # =====================================================
+    def esta_en_revision(self) -> bool:
+        """Verifica si la solicitud está en revisión"""
+        return self._estado_actual == EstadoSolicitud.EN_REVISION
+
+    def tiene_documentos_pendientes(self) -> bool:
+        """Verifica si el estado es DOCUMENTOS_PENDIENTES"""
+        return self._estado_actual == EstadoSolicitud.DOCUMENTOS_PENDIENTES
+
+    def documentos_fueron_registrados(self, cantidad_esperada: int) -> bool:
+        """Verifica si la cantidad de documentos registrados coincide"""
+        return len(self._documentos) == cantidad_esperada

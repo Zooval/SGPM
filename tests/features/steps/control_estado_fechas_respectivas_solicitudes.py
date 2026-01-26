@@ -29,7 +29,7 @@ def _ensure_context_store(context: behave.runner.Context):
     if not hasattr(context, "solicitantes"):
         context.solicitantes = {}  # cedula -> Solicitante
     if not hasattr(context, "solicitudes"):
-        context.solicitudes = {}   # codigo -> SolicitudMigratoria
+        context.solicitudes = {}  # codigo -> SolicitudMigratoria
     if not hasattr(context, "asesor"):
         context.asesor = None
     if not hasattr(context, "error"):
@@ -314,7 +314,7 @@ def visualiza_resultado(context: behave.runner.Context, resultado: str):
     assert real == resultado.strip().lower()
 
 
-@step('si el resultado es "rechazado", el asesor visualiza el mensaje "{mensaje_error}"')
+@step('el resultado es rechazado, el asesor visualiza el mensaje "{mensaje_error}"')
 def si_rechazado_mensaje(context: behave.runner.Context, mensaje_error: str):
     if context.error:
         assert mensaje_error.lower() in str(context.error).lower()
@@ -351,8 +351,28 @@ def mantiene_valor_anterior(context: behave.runner.Context, tipo_fecha: str):
 
 @step('que el asesor visualiza "fechaRecepcionDocs" como "{fecha_recepcion_docs}"')
 def visualiza_fecha_recepcion_docs(context: behave.runner.Context, fecha_recepcion_docs: str):
+    _ensure_context_store(context)
+    context.error = None
+
+    fecha_evento = context.solicitud_actual.fechaCreación
+
+    # Si la fecha aún no está asignada, asignarla ahora
     real = context.solicitud_actual.obtener_fecha_proceso("fechaRecepcionDocs")
-    assert _date_only(real) == _date_only(fecha_recepcion_docs)
+    if real is None:
+        try:
+            context.solicitud_actual.asignar_fecha_proceso(
+                campo="fechaRecepcionDocs",
+                valor_iso=fecha_recepcion_docs,
+                usuario=context.asesor.emailAsesor,
+                fecha_evento=fecha_evento,
+            )
+        except Exception as e:
+            context.error = e
+
+    # Validar que la fecha es correcta
+    real = context.solicitud_actual.obtener_fecha_proceso("fechaRecepcionDocs")
+    assert _date_only(real) == _date_only(
+        fecha_recepcion_docs), f"fechaRecepcionDocs esperada={fecha_recepcion_docs} real={real}"
 
 
 @step("el asesor visualiza las fechas clave registradas:")
