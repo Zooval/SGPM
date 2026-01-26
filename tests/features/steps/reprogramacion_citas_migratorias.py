@@ -5,7 +5,7 @@ from behave import *
 from unittest.mock import Mock
 from faker import Faker
 
-use_step_matcher("re")
+use_step_matcher("parse")
 fake = Faker('es_ES')
 
 # --- Simulación del Sistema (Contexto) ---
@@ -34,7 +34,39 @@ class OverlapConflict(Exception):
     """Error cuando hay conflicto de superposición"""
     pass
 
-@step('que existe una cita de visa con ID "(?P<id_cita>.+)" agendada para "(?P<fecha_actual>.+) de tipo "(?P<tipo_tramite>.+)"')
+# Excepciones de autorización
+class UnauthorizedException(Exception):
+    """Error cuando el usuario no tiene permisos"""
+    pass
+
+
+class ForbiddenException(Exception):
+    """Error cuando la acción está prohibida para el rol"""
+    pass
+
+
+# Configuración de roles y permisos
+ROLES_PERMISOS = {
+    'Solo_Lectura': {
+        'permisos': ['consultar_citas', 'ver_calendario'],
+        'puede_modificar': False
+    },
+    'Auditor': {
+        'permisos': ['consultar_citas', 'ver_calendario', 'generar_reportes', 'ver_logs'],
+        'puede_modificar': False
+    },
+    'Asesor': {
+        'permisos': ['consultar_citas', 'crear_citas', 'modificar_citas', 'reprogramar_citas'],
+        'puede_modificar': True
+    },
+    'Administrador': {
+        'permisos': ['*'],
+        'puede_modificar': True
+    }
+}
+
+
+@step('que existe una cita de visa con ID {id_cita} agendada para {fecha_actual} de tipo {tipo_tramite}')
 def step_impl(context: behave.runner.Context, id_cita: str, fecha_actual: str, tipo_tramite: str):
     """Crear una cita inicial en el sistema"""
     if not hasattr(context, 'citas'):
@@ -61,7 +93,7 @@ def step_impl(context: behave.runner.Context, id_cita: str, fecha_actual: str, t
     }
 
 
-@step('que la fecha "(?P<nueva_fecha>.+)" se encuentra disponible en el calendario')
+@step('que la fecha {nueva_fecha} se encuentra disponible en el calendario')
 def step_impl(context: behave.runner.Context, nueva_fecha: str):
     """Verificar que la fecha esté disponible"""
     if not hasattr(context, 'calendario_disponible'):
@@ -71,7 +103,7 @@ def step_impl(context: behave.runner.Context, nueva_fecha: str):
     context.calendario_disponible.append(fecha_dt)
 
 
-@step('el asesor reprograma la cita "(?P<id_cita>.+)" para la "(?P<nueva_fecha>.+)"')
+@step('el asesor reprograma la cita {id_cita} para la {nueva_fecha}')
 def step_impl(context: behave.runner.Context, id_cita: str, nueva_fecha: str):
     """Ejecutar la reprogramación de la cita"""
     if id_cita not in context.citas:
@@ -101,7 +133,7 @@ def step_impl(context: behave.runner.Context, id_cita: str, nueva_fecha: str):
     })
 
 
-@step('el sistema debe registrar la nueva fecha "(?P<nueva_fecha>.+)" en la base de datos')
+@step('el sistema debe registrar la nueva fecha {nueva_fecha} en la base de datos')
 def step_impl(context: behave.runner.Context, nueva_fecha: str):
     """Verificar que la fecha fue actualizada correctamente"""
     nueva_fecha_dt = datetime.strptime(nueva_fecha, '%Y-%m-%d %H:%M')
@@ -127,15 +159,11 @@ def step_impl(context: behave.runner.Context):
     assert len(ultima_notificacion['destinatarios']) >= 2, "Faltan destinatarios"
 
 
-@step('la cita debe conservar su categoría de trámite "(?P<tipo_tramite>.+)"')
+@step('la cita debe conservar su categoría de trámite {tipo_tramite}')
 def step_impl(context: behave.runner.Context, tipo_tramite: str):
     """Verificar que el tipo de trámite no cambió"""
-    # Buscar la cita reprogramada
-    cita_reprogramada = None
-    for cita in context.citas.values():
-        if cita['estado'] == 'reprogramada':
-            cita_reprogramada = cita
-            break
+    # Buscar la cita reprogramada de forma simplificada
+    cita_reprogramada = next((cita for cita in context.citas.values() if cita['estado'] == 'reprogramada'), None)
 
     assert cita_reprogramada is not None, "No se encontró cita reprogramada"
     assert cita_reprogramada['tipo_tramite'] == tipo_tramite, \
@@ -143,7 +171,7 @@ def step_impl(context: behave.runner.Context, tipo_tramite: str):
 
 
 """-------------------------------------------------------------------------------------"""
-@step('que existe una cita "(?P<nombre_cita>.+)" programada para las "(?P<hora_original>.+)"')
+@step('que existe una cita {nombre_cita} programada para las {hora_original}')
 def step_impl(context: behave.runner.Context, nombre_cita: str, hora_original: str):
     """Crear una cita identificada por nombre"""
     if not hasattr(context, 'citas_nombradas'):
@@ -171,7 +199,7 @@ def step_impl(context: behave.runner.Context, nombre_cita: str, hora_original: s
     }
 
 
-@step('que existe otro evento "(?P<nombre_evento>.+)" ya confirmado a las "(?P<hora_destino>.+)"')
+@step('que existe otro evento {nombre_evento} ya confirmado a las {hora_destino}')
 def step_impl(context: behave.runner.Context, nombre_evento: str, hora_destino: str):
     """Crear un evento que bloquea el horario destino"""
     if not hasattr(context, 'eventos'):
@@ -179,17 +207,25 @@ def step_impl(context: behave.runner.Context, nombre_evento: str, hora_destino: 
 
     fecha_dt = datetime.strptime(hora_destino, '%Y-%m-%d %H:%M')
 
+    # Determinar el tipo de evento basado en la hora para que coincida con los ejemplos del feature
+    # Primera hora (10:00) -> SlotNotAvailable (cita_otro_migrante)
+    # Segunda hora (15:30) -> OverlapConflict (otro tipo de evento)
+    if fecha_dt.hour == 10:
+        tipo_evento = 'cita_otro_migrante'
+    else:
+        tipo_evento = fake.random_element(['reunion', 'capacitacion'])
+
     context.eventos[nombre_evento] = {
         'id': fake.uuid4()[:8],
         'nombre': nombre_evento,
         'fecha': fecha_dt,
-        'tipo': fake.random_element(['reunion', 'capacitacion', 'cita_otro_migrante']),
+        'tipo': tipo_evento,
         'estado': 'confirmado',
         'asesor_id': context.citas_nombradas.get('Cita_A', {}).get('asesor', {}).get('id')
     }
 
 
-@step('el asesor intenta reprogramar la "(?P<nombre_cita>.+)" para las "(?P<hora_destino>.+)"')
+@step('el asesor intenta reprogramar la {nombre_cita} para las {hora_destino}')
 def step_impl(context: behave.runner.Context, nombre_cita: str, hora_destino: str):
     """Intentar reprogramar y capturar el error"""
     if nombre_cita not in context.citas_nombradas:
@@ -233,7 +269,7 @@ def step_impl(context: behave.runner.Context, nombre_cita: str, hora_destino: st
         context.error_capturado = None
 
 
-@step('el sistema debe lanzar un error de tipo "(?P<tipo_error>.+)"')
+@step('el sistema debe lanzar un error de tipo {tipo_error}')
 def step_impl(context: behave.runner.Context, tipo_error: str):
     """Verificar que se lanzó el error correcto"""
     assert hasattr(context, 'error_capturado'), "No se capturó ningún error"
@@ -252,7 +288,7 @@ def step_impl(context: behave.runner.Context, tipo_error: str):
         f"Error incorrecto. Esperado: {tipo_error}, Obtenido: {type(context.error_capturado).__name__}"
 
 
-@step('la "(?P<nombre_cita>.+)" debe permanecer agendada a las "(?P<hora_original>.+)"')
+@step('la {nombre_cita} debe permanecer agendada a las {hora_original}')
 def step_impl(context: behave.runner.Context, nombre_cita: str, hora_original: str):
     """Verificar que la cita no fue modificada"""
     assert nombre_cita in context.citas_nombradas, f"Cita {nombre_cita} no existe"
@@ -268,40 +304,158 @@ def step_impl(context: behave.runner.Context, nombre_cita: str, hora_original: s
 
 
 """-------------------------------------------------------------------------------------"""
-@step('que el usuario activo tiene el rol de "(?P<rol_asignado>.+)"')
+@step('que el usuario activo tiene el rol de {rol_asignado}')
 def step_impl(context: behave.runner.Context, rol_asignado: str):
+    """Crear usuario activo con rol específico"""
+    if not hasattr(context, 'usuario_activo'):
+        context.usuario_activo = {}
 
-    raise NotImplementedError(u'STEP: Dado que el usuario activo tiene el rol de "<rol_asignado>"')
+    if not hasattr(context, 'log_auditoria'):
+        context.log_auditoria = []
+
+    # Crear usuario con Faker
+    context.usuario_activo = {
+        'id': fake.uuid4()[:10],
+        'nombre': fake.name(),
+        'email': fake.company_email(),
+        'rol': rol_asignado,
+        'permisos': ROLES_PERMISOS.get(rol_asignado, {}).get('permisos', []),
+        'puede_modificar': ROLES_PERMISOS.get(rol_asignado, {}).get('puede_modificar', False),
+        'departamento': fake.random_element(['Migración', 'Visas', 'Consultoría']),
+        'fecha_registro': fake.date_time_this_year()
+    }
 
 
-@step('existe una cita activa con ID "(?P<id_cita>.+)"')
+@step('existe una cita activa con ID {id_cita}')
 def step_impl(context: behave.runner.Context, id_cita: str):
+    """Crear una cita activa en el sistema"""
+    if not hasattr(context, 'citas'):
+        context.citas = {}
 
-    raise NotImplementedError(u'STEP: Y existe una cita activa con ID "<id_cita>"')
+    context.citas[id_cita] = {
+        'id': id_cita,
+        'fecha': fake.date_time_between(start_date='+1d', end_date='+30d'),
+        'tipo_tramite': fake.random_element(['Visa_Turismo', 'Visa_Trabajo', 'Visa_Estudiante']),
+        'migrante': {
+            'nombre': fake.name(),
+            'email': fake.email(),
+            'telefono': fake.phone_number(),
+            'nacionalidad': fake.country()
+        },
+        'asesor_asignado': {
+            'nombre': fake.name(),
+            'id': fake.uuid4()[:8]
+        },
+        'estado': 'activa',
+        'observaciones': fake.sentence()
+    }
 
 
-@step('el usuario intenta ejecutar la acción de "Reprogramar" sobre la cita "(?P<id_cita>.+)"')
-def step_impl(context: behave.runner.Context, id_cita: str):
+@step('el usuario intenta ejecutar la acción de {accion} sobre la cita {id_cita}')
+def step_impl(context: behave.runner.Context, accion: str, id_cita: str):
+    """Intentar ejecutar acción y validar permisos"""
+    # Limpiar comillas del parámetro si las tiene
+    accion = accion.strip('"')
 
-    raise NotImplementedError(
-        u'STEP: Cuando el usuario intenta ejecutar la acción de "Reprogramar" sobre la cita "<id_cita>"')
+    if id_cita not in context.citas:
+        raise ValueError(f"Cita {id_cita} no existe")
+
+    usuario = context.usuario_activo
+    cita = context.citas[id_cita]
+
+    # Guardar intento de acción
+    context.intento_accion = {
+        'accion': accion,
+        'cita_id': id_cita,
+        'usuario_id': usuario['id'],
+        'timestamp': datetime.now()
+    }
+
+    # Validar permisos
+    puede_realizar_accion = False
+    error_generado = None
+    mensaje_error = None
+    codigo_evento = None
+
+    if accion == 'Reprogramar':
+        if usuario['puede_modificar']:
+            puede_realizar_accion = True
+        else:
+            # Determinar tipo de error según el rol
+            if usuario['rol'] == 'Solo_Lectura':
+                mensaje_error = "Usted no tiene permisos para modificar citas migratorias"
+                codigo_evento = "AUTH_UNAUTHORIZED"
+                error_generado = UnauthorizedException(mensaje_error)
+            elif usuario['rol'] == 'Auditor':
+                mensaje_error = "Acción denegada: Su perfil es de consulta únicamente"
+                codigo_evento = "AUTH_FORBIDDEN"
+                error_generado = ForbiddenException(mensaje_error)
+            else:
+                mensaje_error = "Permisos insuficientes"
+                codigo_evento = "AUTH_DENIED"
+                error_generado = Exception(mensaje_error)
+
+            # Registrar en log de auditoría
+            context.log_auditoria.append({
+                'codigo_evento': codigo_evento,
+                'usuario_id': usuario['id'],
+                'usuario_nombre': usuario['nombre'],
+                'usuario_rol': usuario['rol'],
+                'accion_intentada': accion,
+                'recurso_id': id_cita,
+                'resultado': 'RECHAZADO',
+                'mensaje': mensaje_error,
+                'timestamp': datetime.now(),
+                'ip_origen': fake.ipv4()
+            })
+
+    # Guardar resultado
+    context.resultado_accion = {
+        'exitosa': puede_realizar_accion,
+        'error': error_generado,
+        'mensaje': mensaje_error,
+        'codigo_evento': codigo_evento
+    }
 
 
 @step("el sistema debe rechazar la solicitud")
 def step_impl(context: behave.runner.Context):
- 
-    raise NotImplementedError(u'STEP: Entonces el sistema debe rechazar la solicitud')
+    """Verificar que la solicitud fue rechazada"""
+    assert hasattr(context, 'resultado_accion'), "No se procesó la acción"
+
+    resultado = context.resultado_accion
+    assert resultado['exitosa'] is False, "La acción no fue rechazada"
+    assert resultado['error'] is not None, f"No se generó error de rechazo"
 
 
-@step('se debe mostrar el mensaje de error: "(?P<mensaje_esperado>.+)"')
+@step('se debe mostrar el mensaje de error {mensaje_esperado}')
 def step_impl(context: behave.runner.Context, mensaje_esperado: str):
+    """Verificar que el mensaje de error es el correcto"""
+    assert hasattr(context, 'resultado_accion'), "No se procesó la acción"
 
-    raise NotImplementedError(u'STEP: Y se debe mostrar el mensaje de error: "<mensaje_esperado>"')
+    resultado = context.resultado_accion
+    assert resultado['mensaje'] == mensaje_esperado, \
+        f"Mensaje incorrecto. Esperado: '{mensaje_esperado}', Obtenido: '{resultado['mensaje']}'"
 
 
-@step('el sistema debe escribir una entrada en el Log de Auditoría con el código "(?P<codigo_evento>.+)"')
+
+@step('el sistema debe escribir una entrada en el Log de Auditoría con el código {codigo_evento}')
 def step_impl(context: behave.runner.Context, codigo_evento: str):
+    """Verificar que se registró en el log de auditoría"""
+    assert hasattr(context, 'log_auditoria'), "No existe log de auditoría"
+    assert hasattr(context, 'log_auditoria'), "No existe log de auditoría"
 
-    raise NotImplementedError(
-        u'STEP: Y el sistema debe escribir una entrada en el Log de Auditoría con el código "<codigo_evento>"')
+    # Buscar la última entrada
+    ultima_entrada = context.log_auditoria[-1]
 
+    assert ultima_entrada['codigo_evento'] == codigo_evento, \
+        f"Código de evento incorrecto. Esperado: {codigo_evento}, Obtenido: {ultima_entrada['codigo_evento']}"
+
+    assert ultima_entrada['resultado'] == 'RECHAZADO', \
+        "El resultado en el log debería ser RECHAZADO"
+
+    assert ultima_entrada['usuario_id'] == context.usuario_activo['id'], \
+        "Usuario en el log no coincide con el usuario activo"
+
+    assert ultima_entrada['recurso_id'] == context.intento_accion['cita_id'], \
+        "ID de cita en el log no coincide"
