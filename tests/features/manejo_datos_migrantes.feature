@@ -1,55 +1,32 @@
-# Created by ximen at 10/1/2026
+# Created by anthony at 10/1/2026
 # language: es
 
 Característica: Manejo de datos de los migrantes
   Se encarga del registro de la información de los clientes que solicitan un proceso migratorio,
   la actualización de la información de los mismos, en sí la gestión de los migrantes.
 
-  HU-01: Registrar migrante
-  Como asesor
-  Quiero registrar la información personal y migratoria del migrante
-  Para iniciar su trámite migratorio según su condición y destino
+  Escenario: Registro exitoso de un solicitante con información válida
+    Dado que el gestor migratorio inicia un nuevo registro de solicitante
+    Cuando ingresa información biográfica y migratoria válida del solicitante
+    Entonces el sistema crea el expediente digital del solicitante
+    Y genera un identificador único del expediente
+    Y registra la fecha y hora de inicio del proceso migratorio
 
-  Esquema del escenario: Registro exitoso de migrante
-    Dado que un cliente ha solicitado iniciar un trámite migratorio
-    Cuando el asesor registra la información del migrante con los siguientes datos:
-      | cedula   | nombre   | edad   | estado_civil | ocupacion   | condicion   | tipo_visa | pais_destino | telefono   | correo   | direccion   | foto   |
-      | <cedula> | <nombre> | <edad> | <estado>     | <ocupacion> | <condicion> | <visa>    | <pais>       | <telefono> | <correo> | <direccion> | <foto> |
-    Entonces el migrante queda caracterizado según su condición migratoria
-    Y el trámite de visa queda definido según el tipo y país de destino
-    Y el migrante cuenta con una imagen de identificación registrada
+  Escenario: Prevención de inicio de múltiples procesos para un mismo solicitante
+    Dado que existe un expediente migratorio activo asociado a un solicitante
+    Cuando el gestor migratorio intenta iniciar un nuevo proceso migratorio para el mismo solicitante
+    Entonces el sistema impide la creación de un nuevo expediente
+    Y notifica al gestor que el solicitante ya cuenta con un proceso migratorio activo
 
-    Ejemplos:
-      | cedula     | nombre       | edad | estado  | ocupacion | visa     | condicion  | pais     | telefono   | correo                | direccion | foto              |
-      | 0605914283 | Daniel Pérez | 27   | Soltero | Trabajo   | Trabajar | Inmigrante | Canadá   | 0991234567 | daniel.perez@mail.com | Quito     | daniel_perez.jpg  |
-      | 1712098475 | María Gómez  | 22   | Soltera | Estudio   | Estudiar | Emigrante  | España   | 0987654321 | maria.gomez@mail.com  | Guayaquil | maria_gomez.png   |
-      | 0912385423 | Luis Andrade | 35   | Casado  | Trabajo   | Vivir    | Emigrante  | Alemania | 0971122334 | l.andrade@mail.com    | Cuenca    | luis_andrade.jpeg |
+  Escenario: Validación de coherencia de la información biográfica del solicitante
+    Dado que el gestor migratorio ingresa la información del solicitante
+    Cuando se detecta información biográfica inconsistente
+    Entonces el sistema identifica la inconsistencia
+    Y notifica al gestor que la información debe ser corregida antes de continuar
 
-  #Escenarios alternativo
-  Esquema del escenario: Migrante previamente registrado
-    Dado que existe un migrante registrado con la cédula "<cedula>"
-    Cuando el asesor intenta registrar nuevamente al migrante
-    Entonces se reutiliza la información existente
-    Y se asocia al nuevo trámite
-
-    Ejemplos:
-      | cedula     |
-      | 0605914283 |
-
-  Esquema del escenario: Registro sin fotografía
-    Dado que un cliente ha solicitado iniciar un trámite migratorio
-    Cuando el asesor registra la información del migrante con los siguientes datos:
-      | cedula   | nombre   | edad   | estado_civil | ocupacion   | condicion   | tipo_visa | pais_destino | telefono   | correo   | direccion   | foto   |
-      | <cedula> | <nombre> | <edad> | <estado>     | <ocupacion> | <condicion> | <visa>    | <pais>       | <telefono> | <correo> | <direccion> | <foto> |
-    Entonces el migrante queda registrado
-    Y la fotografía queda pendiente de carga
-
-    Ejemplos:
-      | cedula     | nombre         | edad | estado  | ocupacion | visa     | condicion  | pais     | telefono   | correo                  | direccion | foto |
-      | 1712098475 | Stephany Gómez | 19   | Soltera | Estudio   | Estudiar | Inmigrante | España   | 0987652121 | stephany.gomez@mail.com | Cayambe   |      |
-      | 0912385423 | German Andrade | 30   | Trabajo | Trabajo   | Vivir    | Inmigrante | Alemania | 0971120934 | german.andrade@mail.com | Cumbaya   |      |
-
-
-
-
-
+  Escenario: Disponibilidad del expediente digital para seguimiento del proceso
+    Dado que un expediente migratorio ha sido registrado correctamente
+    Cuando el gestor migratorio consulta el expediente del solicitante
+    Entonces el sistema muestra la información biográfica y migratoria del solicitante
+    Y presenta el estado actual del proceso migratorio
+    Y permite su seguimiento conforme a las etapas definidas por el negocio
