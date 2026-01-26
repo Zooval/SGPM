@@ -1,0 +1,102 @@
+# =========================
+# Django / Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# C extensions / wheels
+*.so
+*.pyd
+*.dll
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.virtualenv/
+
+# Environment variables / secrets (use placeholders in docs, never commit real values)
+.env
+.env.*
+!.env.example
+
+# Django local artifacts
+db.sqlite3
+db.sqlite3-journal
+*.log
+local_settings.py
+settings_local.py
+
+# Uploads / user-generated content (commonly not committed)
+media/
+# If you prefer to keep an empty media/ folder tracked, add a media/.gitkeep file.
+
+# Collected static files (only if you use `collectstatic` into STATIC_ROOT)
+staticfiles/
+
+# =========================
+# Tests / Coverage
+# =========================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+nosetests.xml
+junit.xml
+test-results/
+*.cover
+
+# Behave / BDD (your project has features/)
+reports/
+allure-results/
+allure-report/
+
+# =========================
+# Packaging / Build
+# =========================
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# =========================
+# IDEs / Editors
+# =========================
+# PyCharm / IntelliJ
+.idea/
+*.iml
+
+# VS Code (if ever used)
+.vscode/
+
+# =========================
+# OS / Misc
+# =========================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# =========================
+# Type checking / Linting caches
+# =========================
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/

@@ -1,0 +1,19 @@
+.earth{
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background-image:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,.85), rgba(255,255,255,0) 35%),
+    url("https://upload.wikimedia.org/wikipedia/commons/8/80/Equirectangular_projection_SW.jpg");
+  background-size: 140px 46px;   /* textura más ancha para que “se desplace” */
+  background-repeat: repeat-x;
+  box-shadow:
+    inset -12px 0 18px rgba(0,0,0,.35),
+    0 10px 25px rgba(0,0,0,.20);
+  animation: earthScroll 2.4s linear infinite;
+}
+
+@keyframes earthScroll{
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 0 0, -140px 0; }
+}
