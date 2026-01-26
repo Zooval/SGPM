@@ -29,9 +29,9 @@ Característica: Control de estado y fechas clave de una solicitud
 
     Ejemplos:
       | estado_inicial | estado_nuevo  | motivo                 | fecha_evento |
-      | Creada         | En revisión   | Verificación inicial   | 2026-01-12   |
-      | En revisión    | Enviada       | Documentos completos   | 2026-01-15   |
-      | Enviada        | Aprobada      | Respuesta favorable    | 2026-01-20   |
+      | Creada         | En revision   | Verificacion inicial   | 2026-01-10   |
+      | En revision    | Enviada       | Documentos completos   | 2026-01-10   |
+      | Enviada        | Aprobada      | Respuesta favorable    | 2026-01-10   |
 
   @estado @avance_invalido
   Esquema del escenario: Evitar una transición no permitida mantiene el estado y muestra el motivo
@@ -45,7 +45,7 @@ Característica: Control de estado y fechas clave de una solicitud
     Ejemplos:
       | estado_inicial | estado_nuevo | motivo              | mensaje_error                          |
       | Creada         | Aprobada     | Saltar revisión     | No se permite la transición solicitada |
-      | Aprobada       | En revisión  | Reabrir análisis    | No se permite la transición solicitada |
+      | Aprobada       | En revision  | Reabrir análisis    | No se permite la transición solicitada |
 
   @estado @rechazo_requiere_motivo
   Esquema del escenario: Rechazar exige motivo obligatorio
@@ -56,9 +56,9 @@ Característica: Control de estado y fechas clave de una solicitud
     Y si el resultado es "rechazado", el asesor visualiza el mensaje "<mensaje_error>"
 
     Ejemplos:
-      | estado_inicial | motivo                       | resultado | mensaje_error                          |
-      | En revisión    | Documentación incompleta     | aceptado  |                                       |
-      | En revisión    |                             | rechazado | El motivo es obligatorio al rechazar  |
+      | estado_inicial | motivo                   | resultado | mensaje_error                         |
+      | En revision    | Documentación incompleta | aceptado  |                                       |
+      | En revision    |                          | rechazado | El motivo es obligatorio al rechazar  |
 
   @estado @archivada_bloquea
   Esquema del escenario: Una solicitud archivada no permite cambios
@@ -70,7 +70,7 @@ Característica: Control de estado y fechas clave de una solicitud
 
     Ejemplos:
       | estado_nuevo | motivo          | mensaje_error                       |
-      | En revisión  | Retomar trámite | No se permiten cambios en Archivada |
+      | En revision  | Retomar trámite | No se permiten cambios en Archivada |
       | Rechazada    | Cerrar trámite  | No se permiten cambios en Archivada |
 
   @fechas @registrar_fecha
@@ -89,9 +89,9 @@ Característica: Control de estado y fechas clave de una solicitud
 
     Ejemplos:
       | tipo_fecha          | valor_anterior | fecha_valor  | fecha_evento |
-      | fechaRecepcionDocs  | (vacío)        | 2026-01-11    | 2026-01-11   |
-      | fechaEnvioSolicitud | (vacío)        | 2026-01-15    | 2026-01-15   |
-      | fechaCita           | (vacío)        | 2026-01-18    | 2026-01-16   |
+      | fechaRecepcionDocs  | (vacío)        | 2026-01-11    | 2026-01-10   |
+      | fechaEnvioSolicitud | (vacío)        | 2026-01-15    | 2026-01-10   |
+      | fechaCita           | (vacío)        | 2026-01-18    | 2026-01-10   |
 
   @fechas @fecha_invalida
   Esquema del escenario: Bloquear una fecha anterior a la creación muestra el error y no cambia el valor
@@ -102,9 +102,9 @@ Característica: Control de estado y fechas clave de una solicitud
     Y el asesor visualiza que "<tipo_fecha>" mantiene su valor anterior
 
     Ejemplos:
-      | tipo_fecha         | fecha_valor  | mensaje_error                                           |
-      | fechaRecepcionDocs | 2026-01-05   | La fecha no puede ser anterior a la fecha de creación   |
-      | fechaCita          | 2026-01-01   | La fecha no puede ser anterior a la fecha de creación   |
+      | tipo_fecha         | fecha_valor  | mensaje_error                                         |
+      | fechaRecepcionDocs | 2026-01-05   | La fecha no puede ser anterior a la fecha de creación |
+      | fechaCita          | 2026-01-01   | La fecha no puede ser anterior a la fecha de creación |
 
   @fechas @coherencia_fechas
   Esquema del escenario: No permitir que el envío sea anterior a la recepción de documentos
@@ -136,4 +136,3 @@ Característica: Control de estado y fechas clave de una solicitud
     Y cada cambio de estado muestra: estado anterior, estado nuevo, usuario, fecha, motivo
     Y el asesor visualiza los cambios de fechas en orden cronológico descendente
     Y cada cambio de fecha muestra: campo, valor anterior, valor nuevo, usuario, fecha
-
