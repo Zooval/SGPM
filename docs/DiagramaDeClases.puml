@@ -1,0 +1,180 @@
+@startuml
+' https://plantuml.com/class-diagram
+
+skinparam classAttributeIconSize 0
+
+' ===== Value Objects / Tipos =====
+class RangoFechaHora <<value_object>> {
+  +inicio: datetime
+  +fin: datetime
+}
+
+' ===== Clases =====
+class Solicitante {
+  +cedula: str
+  +nombres: str
+  +apellidos: str
+  +correo: str
+  +telefono: str
+  +fecha_nacimiento: date
+}
+
+class Asesor {
+  +nombres: str
+  +apellidos: str
+  +email_asesor: str
+  +rol: RolUsuario
+}
+
+class SolicitudMigratoria {
+  +codigo: str
+  +tipo_servicio: TipoServicio
+  +estado_actual: EstadoSolicitud
+  +fecha_creacion: datetime
+  +fecha_expiracion: datetime
+}
+
+class Documento {
+  +id_documento: str
+  +tipo: TipoDocumento
+  +estado: EstadoDocumento
+  +fecha_expiracion: date
+  +version_actual: int
+  +observacion: str
+}
+
+class Cita {
+  +id_cita: str
+  +observacion: str
+  +rango: RangoFechaHora
+  +tipo: TipoCita
+  +estado: EstadoCita
+}
+
+class Tarea {
+  +id_tarea: str
+  +vencimiento: datetime
+  +estado: EstadoTarea
+  +prioridad: PrioridadTarea
+  +comentario: str
+  +titulo: str
+}
+
+class Notificacion {
+  +id_notificacion: str
+  +destinatario: str
+  +tipo: TipoNotificacion
+  +mensaje: str
+  +creada_en: datetime
+}
+
+' ===== Relaciones (negocio) =====
+Solicitante "1" o-- "0..*" Documento : posee
+Solicitante "1" o-- "0..*" SolicitudMigratoria : crea
+
+Asesor "1" o-- "0..*" SolicitudMigratoria : gestiona
+
+SolicitudMigratoria "1" o-- "0..*" Cita : agenda
+SolicitudMigratoria "1" o-- "0..*" Tarea : genera
+SolicitudMigratoria "1" o-- "0..*" Notificacion : notifica
+
+Tarea "*" --> "1" Asesor : asignada_a
+
+' (Opcional) La solicitud referencia docs del solicitante (no los posee)
+SolicitudMigratoria "*" ..> Documento : referencia
+
+' ===== Enums =====
+enum RolUsuario {
+  ASESOR
+  ADMIN
+  OPERADOR
+}
+
+enum EstadoSolicitud {
+  CREADA
+  EN_REVISION
+  DOCUMENTOS_PENDIENTES
+  ENVIADA
+  APROBADA
+  RECHAZADA
+  CERRADA
+}
+
+enum TipoServicio {
+  VISA_TURISMO
+  VISA_TRABAJO
+  ESTUDIOS
+  RESIDENCIA
+}
+
+enum TipoDocumento {
+  PASAPORTE
+  ANTECEDENTES
+  ESTADOS_BANCARIOS
+  CONTRATO_TRABAJO
+  MATRICULA_ESTUDIOS
+  OTROS
+}
+
+enum EstadoDocumento {
+  RECIBIDO
+  APROBADO
+  RECHAZADO
+  VENCIDO
+}
+
+enum EstadoTarea {
+  PENDIENTE
+  EN_PROGRESO
+  COMPLETADA
+  CANCELADA
+}
+
+enum PrioridadTarea {
+  BAJA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+enum TipoCita {
+  CONSULAR
+  BIOMETRIA
+  ENTREGA_DOCUMENTOS
+  ASESORIA
+}
+
+enum EstadoCita {
+  PROGRAMADA
+  REPROGRAMADA
+  COMPLETADA
+  CANCELADA
+  NO_ASISTIO
+}
+
+enum TipoNotificacion {
+  RECORDATORIO
+  DOC_FALTANTE
+  CITA_PROXIMA
+  ASIGNACION_TAREA
+}
+
+' ===== Unir enums con las clases que los "tienen" =====
+Asesor --> RolUsuario : rol
+
+SolicitudMigratoria --> TipoServicio : tipo_servicio
+SolicitudMigratoria --> EstadoSolicitud : estado_actual
+
+Documento --> TipoDocumento : tipo
+Documento --> EstadoDocumento : estado
+
+Cita --> TipoCita : tipo
+Cita --> EstadoCita : estado
+Cita --> RangoFechaHora : rango
+
+Tarea --> EstadoTarea : estado
+Tarea --> PrioridadTarea : prioridad
+
+Notificacion --> TipoNotificacion : tipo
+
+@enduml
