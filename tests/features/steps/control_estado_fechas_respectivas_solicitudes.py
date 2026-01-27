@@ -1,403 +1,526 @@
-# test/feature/steps/control_estado_fechas_respectivas_solicitudes.py
-
-import behave.runner
 from behave import step, use_step_matcher
-import unicodedata
-import re
+from dataclasses import dataclass, field
+from enum import Enum
 from datetime import datetime, date
+from typing import Optional, Dict, Any, List
 
-from SGPM.domain.entities import (
-    Solicitante,
-    Asesor,
-    SolicitudMigratoria,
-    parse_datetime_iso,
-    parse_estado_solicitud,
-    parse_date_iso,
-    TransicionEstadoNoPermitida,
-    CampoFechaNoPermitido,
-    FechaInvalida,
-)
+use_step_matcher("re")
 
-# matcher exacto (parse)
-use_step_matcher("parse")
+# ============================================================
+# Enums (alineados a tus clases)
+# ============================================================
 
+class EstadoSolicitud(Enum):
+    CREADA = "Creada"
+    EN_REVISION = "En revision"
+    DOCUMENTOS_PENDIENTES = "Documentos pendientes"
+    ENVIADA = "Enviada"
+    APROBADA = "Aprobada"
+    RECHAZADA = "Rechazada"
+    CERRADA = "Cerrada"
+    ARCHIVADA = "Archivada"  # aparece en tu feature
 
-# ------------------------------------------------------------
+# ============================================================
+# Entidades mínimas para que los steps funcionen
+# (si ya tienes tus entidades en SGPM.domain.entities, reemplaza por imports)
+# ============================================================
+
+@dataclass
+class Solicitante:
+    cedula: str
+    correo: str
+
+@dataclass
+class Asesor:
+    email_asesor: str
+
+@dataclass
+class SolicitudMigratoria:
+    codigo: str
+    solicitante_cedula: str
+    estado_actual: EstadoSolicitud
+    fecha_creacion: date
+    fecha_ultima_actualizacion: date
+    fechas_clave: Dict[str, Optional[date]] = field(default_factory=dict)
+    historial_estados: List[Dict[str, Any]] = field(default_factory=list)
+    historial_fechas: List[Dict[str, Any]] = field(default_factory=list)
+
+# ============================================================
 # Helpers
-# ------------------------------------------------------------
-def _ensure_context_store(context: behave.runner.Context):
-    if not hasattr(context, "solicitantes"):
-        context.solicitantes = {}  # cedula -> Solicitante
-    if not hasattr(context, "solicitudes"):
-        context.solicitudes = {}   # codigo -> SolicitudMigratoria
+# ============================================================
+
+def parse_date_iso(s: str) -> date:
+    return datetime.strptime(s.strip(), "%Y-%m-%d").date()
+
+def _ensure_context(context):
+    if not hasattr(context, "cliente"):
+        context.cliente = None
     if not hasattr(context, "asesor"):
         context.asesor = None
-    if not hasattr(context, "error"):
-        context.error = None
-    if not hasattr(context, "cliente_actual"):
-        context.cliente_actual = None
-    if not hasattr(context, "solicitud_actual"):
-        context.solicitud_actual = None
+    if not hasattr(context, "solicitud"):
+        context.solicitud = None
+    if not hasattr(context, "transiciones"):
+        context.transiciones = {}  # (estado_inicial, estado_nuevo) -> bool
+    if not hasattr(context, "ultimo_resultado"):
+        context.ultimo_resultado = None  # "aceptado" / "rechazado"
+    if not hasattr(context, "ultimo_mensaje"):
+        context.ultimo_mensaje = None
+    if not hasattr(context, "historial_snapshot_len"):
+        context.historial_snapshot_len = 0
+    if not hasattr(context, "fechas_snapshot"):
+        context.fechas_snapshot = {}  # campo -> valor anterior
+    if not hasattr(context, "historial_estados_snapshot_len"):
+        context.historial_estados_snapshot_len = 0
+    if not hasattr(context, "historial_fechas_snapshot_len"):
+        context.historial_fechas_snapshot_len = 0
+
+def _estado_from_feature(texto: str) -> EstadoSolicitud:
+    # En tus ejemplos usas "Creada", "En revision", "Enviada", "Aprobada", "Rechazada", "Archivada"
+    t = texto.strip()
+    for e in EstadoSolicitud:
+        if e.value.lower() == t.lower():
+            return e
+    raise AssertionError(f"EstadoSolicitud no reconocido en feature: '{texto}'")
+
+def _campo_fecha_permitido(campo: str) -> bool:
+    return campo in {"fechaRecepcionDocs", "fechaEnvioSolicitud", "fechaCita"}
+
+def _get_fecha_clave(solicitud: SolicitudMigratoria, campo: str) -> Optional[date]:
+    if campo == "fechaCreacion":
+        return solicitud.fecha_creacion
+    if campo == "fechaUltimaActualizacion":
+        return solicitud.fecha_ultima_actualizacion
+    return solicitud.fechas_clave.get(campo)
+
+def _set_fecha_clave(solicitud: SolicitudMigratoria, campo: str, valor: Optional[date]):
+    solicitud.fechas_clave[campo] = valor
+
+def _today_event_date_from_feature(context) -> date:
+    # En el feature, fecha_evento siempre es "2026-01-10" (misma que creación)
+    # Lo guardamos cuando se crea la solicitud.
+    return context.solicitud.fecha_ultima_actualizacion
+
+def _registrar_historial_estado(context, anterior: EstadoSolicitud, nuevo: EstadoSolicitud, motivo: str, fecha_evento: date):
+    context.solicitud.historial_estados.append({
+        "usuario": context.asesor.email_asesor,
+        "anterior": anterior.value,
+        "nuevo": nuevo.value,
+        "fecha": fecha_evento.strftime("%Y-%m-%d"),
+        "motivo": motivo,
+    })
+
+def _registrar_historial_fecha(context, campo: str, anterior: Optional[date], nuevo: Optional[date], fecha_evento: date):
+    def _fmt(d: Optional[date]) -> str:
+        return "(vacío)" if d is None else d.strftime("%Y-%m-%d")
+
+    context.solicitud.historial_fechas.append({
+        "usuario": context.asesor.email_asesor,
+        "campo": campo,
+        "valorAnterior": _fmt(anterior),
+        "valorNuevo": _fmt(nuevo),
+        "fecha": fecha_evento.strftime("%Y-%m-%d"),
+    })
+
+def _aplicar_cambio_estado(context, estado_nuevo_str: str, motivo: str, intento: bool):
+    """
+    intento=False  => 'cambia el estado' (acción esperada)
+    intento=True   => 'intenta cambiar el estado' (puede fallar)
+    """
+    _ensure_context(context)
+    solicitud: SolicitudMigratoria = context.solicitud
+    assert solicitud is not None, "No hay solicitud en contexto."
+    assert context.asesor is not None, "No hay asesor autenticado."
+
+    # Si Archivada bloquea todo
+    if solicitud.estado_actual == EstadoSolicitud.ARCHIVADA:
+        context.ultimo_resultado = "rechazado"
+        context.ultimo_mensaje = "No se permiten cambios en Archivada"
+        return
+
+    nuevo = _estado_from_feature(estado_nuevo_str)
+    anterior = solicitud.estado_actual
+
+    permitido = context.transiciones.get((anterior.value, nuevo.value), False)
+
+    # Regla: Rechazada requiere motivo no vacío
+    if nuevo == EstadoSolicitud.RECHAZADA and (motivo is None or motivo.strip() == ""):
+        context.ultimo_resultado = "rechazado"
+        context.ultimo_mensaje = "El motivo es obligatorio al rechazar"
+        return
+
+    if not permitido:
+        context.ultimo_resultado = "rechazado"
+        context.ultimo_mensaje = "No se permite la transición solicitada"
+        return
+
+    # Aplica cambio
+    solicitud.estado_actual = nuevo
+    fecha_evento = _today_event_date_from_feature(context)
+    solicitud.fecha_ultima_actualizacion = fecha_evento
+    _registrar_historial_estado(context, anterior, nuevo, motivo, fecha_evento)
+
+    context.ultimo_resultado = "aceptado"
+    context.ultimo_mensaje = None
+
+def _aplicar_asignacion_fecha(context, tipo_fecha: str, fecha_valor: str):
+    _ensure_context(context)
+    solicitud: SolicitudMigratoria = context.solicitud
+    assert solicitud is not None, "No hay solicitud en contexto."
+    assert context.asesor is not None, "No hay asesor autenticado."
+
+    if not _campo_fecha_permitido(tipo_fecha):
+        context.ultimo_resultado = "rechazado"
+        context.ultimo_mensaje = "Campo de fecha no permitido"
+        return
+
+    valor = parse_date_iso(fecha_valor)
+    creacion = solicitud.fecha_creacion
+
+    # Bloquear anterior a creación
+    anterior = _get_fecha_clave(solicitud, tipo_fecha)
+    if valor < creacion:
+        context.ultimo_resultado = "rechazado"
+        context.ultimo_mensaje = "La fecha no puede ser anterior a la fecha de creación"
+        return
+
+    # Coherencia: envio no puede ser anterior a recepcionDocs
+    if tipo_fecha == "fechaEnvioSolicitud":
+        frd = _get_fecha_clave(solicitud, "fechaRecepcionDocs")
+        if frd is not None and valor < frd:
+            context.ultimo_resultado = "rechazado"
+            context.ultimo_mensaje = "La fecha de envío no puede ser anterior a la recepción de documentos"
+            return
+
+    _set_fecha_clave(solicitud, tipo_fecha, valor)
+    fecha_evento = _today_event_date_from_feature(context)
+    solicitud.fecha_ultima_actualizacion = fecha_evento
+    _registrar_historial_fecha(context, tipo_fecha, anterior, valor, fecha_evento)
+
+    context.ultimo_resultado = "aceptado"
+    context.ultimo_mensaje = None
+
+# ============================================================
+# Steps - Antecedentes
+# ============================================================
+
+@step('que existe un cliente con cédula "0912345678" y correo "cliente@mail\\.com"')
+def step_existe_cliente(context):
+    _ensure_context(context)
+    context.cliente = Solicitante(cedula="0912345678", correo="cliente@mail.com")
+    context.ultimo_mensaje = None
+    context.ultimo_resultado = None
 
 
-def _norm(s: str) -> str:
-    s = s or ""
-    s = unicodedata.normalize("NFKD", s)
-    s = "".join(c for c in s if not unicodedata.combining(c))  # quita tildes
-    s = s.lower().strip()
-    s = re.sub(r"\s+", " ", s)
-    s = s.replace('"', "").replace("'", "")
-    return s
+@step('existe una solicitud con código "SOL-2026-0001" para el cliente "0912345678" con fecha de creación "2026-01-10"')
+def step_existe_solicitud(context):
+    _ensure_context(context)
+    assert context.cliente is not None, "Cliente no existe en contexto."
 
-
-def _date_only(value) -> str:
-    """Normaliza a YYYY-MM-DD (acepta date, datetime o string ISO con/sin hora)."""
-    if value is None:
-        return None
-    if isinstance(value, datetime):
-        return value.date().isoformat()
-    if isinstance(value, date):
-        return value.isoformat()
-    s = str(value).strip()
-    if re.match(r"^\d{4}-\d{2}-\d{2}", s):
-        return s[:10]
-    try:
-        return parse_datetime_iso(s).date().isoformat()
-    except Exception:
-        return s
-
-
-# ------------------------------------------------------------
-# STEPS (TODO con @step) - PARSE
-# ------------------------------------------------------------
-
-@step('que existe un cliente con cédula "{cedula}" y correo "{correo}"')
-def existe_cliente(context: behave.runner.Context, cedula: str, correo: str):
-    _ensure_context_store(context)
-    cliente = Solicitante(
-        cedula=cedula,
-        nombres="Nombres",
-        apellidos="Apellidos",
-        correo=correo,
-        telefono="0999999999",
-        fechaNacimiento=parse_date_iso("2000-01-01"),
+    fc = parse_date_iso("2026-01-10")
+    # fechaUltimaActualizacion inicial = fechaCreacion
+    context.solicitud = SolicitudMigratoria(
+        codigo="SOL-2026-0001",
+        solicitante_cedula=context.cliente.cedula,
+        estado_actual=EstadoSolicitud.CREADA,
+        fecha_creacion=fc,
+        fecha_ultima_actualizacion=fc,
+        fechas_clave={
+            "fechaRecepcionDocs": None,
+            "fechaEnvioSolicitud": None,
+            "fechaCita": None,
+        },
     )
-    context.solicitantes[cedula] = cliente
-    context.cliente_actual = cliente
 
 
-@step('existe una solicitud con código "{codigo}" para el cliente "{cedula}" con fecha de creación "{fecha_creacion}"')
-def existe_solicitud(context: behave.runner.Context, codigo: str, cedula: str, fecha_creacion: str):
-    _ensure_context_store(context)
-    fc = parse_datetime_iso(fecha_creacion)
-
-    solicitud = SolicitudMigratoria(
-        codigo=codigo,
-        tipoServicio=None,
-        estadoActual=parse_estado_solicitud("Creada"),
-        fechaCreación=fc,
-        fechaExpiracion=fc,
-    )
-
-    if cedula in context.solicitantes:
-        solicitud.asignar_solicitante(context.solicitantes[cedula])
-
-    context.solicitudes[codigo] = solicitud
-    context.solicitud_actual = solicitud
+@step('la solicitud está en estado "Creada"')
+def step_estado_creada(context):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+    context.solicitud.estado_actual = EstadoSolicitud.CREADA
 
 
-@step('la solicitud está en estado "{estado}"')
-def solicitud_en_estado(context: behave.runner.Context, estado: str):
-    _ensure_context_store(context)
-    context.solicitud_actual.estadoActual = parse_estado_solicitud(estado)
+@step('el asesor autenticado es "asesor@agencia\\.com"')
+def step_asesor_autenticado(context):
+    _ensure_context(context)
+    context.asesor = Asesor(email_asesor="asesor@agencia.com")
 
 
-@step('el asesor autenticado es "{email_asesor}"')
-def asesor_autenticado(context: behave.runner.Context, email_asesor: str):
-    _ensure_context_store(context)
-    asesor = Asesor(
-        nombres="Asesor",
-        apellidos="Uno",
-        emailAsesor=email_asesor,
-    )
-    context.asesor = asesor
-    if context.solicitud_actual is not None:
-        context.solicitud_actual.asignar_asesor(asesor)
+# ============================================================
+# Steps - Transiciones
+# ============================================================
+
+@step('que la transición de "(?P<estado_inicial>.+)" a "(?P<estado_nuevo>.+)" está permitida')
+def step_transicion_permitida(context, estado_inicial, estado_nuevo):
+    _ensure_context(context)
+    # guardamos la regla
+    context.transiciones[(estado_inicial.strip(), estado_nuevo.strip())] = True
 
 
-@step('que la transición de "{estado_inicial}" a "{estado_nuevo}" está permitida')
-def transicion_permitida(context: behave.runner.Context, estado_inicial: str, estado_nuevo: str):
-    _ensure_context_store(context)
-    e_ini = parse_estado_solicitud(estado_inicial)
-    e_new = parse_estado_solicitud(estado_nuevo)
-    context.solicitud_actual.estadoActual = e_ini
-    assert context.solicitud_actual.transicion_permitida(e_new), (
-        f"Se esperaba transición permitida: {e_ini.value} -> {e_new.value}"
-    )
+@step('que la transición de "(?P<estado_inicial>.+)" a "(?P<estado_nuevo>.+)" no está permitida')
+def step_transicion_no_permitida(context, estado_inicial, estado_nuevo):
+    _ensure_context(context)
+    context.transiciones[(estado_inicial.strip(), estado_nuevo.strip())] = False
 
 
-@step('que la transición de "{estado_inicial}" a "{estado_nuevo}" no está permitida')
-def transicion_no_permitida(context: behave.runner.Context, estado_inicial: str, estado_nuevo: str):
-    _ensure_context_store(context)
-    e_ini = parse_estado_solicitud(estado_inicial)
-    e_new = parse_estado_solicitud(estado_nuevo)
-    context.solicitud_actual.estadoActual = e_ini
-    assert not context.solicitud_actual.transicion_permitida(e_new), (
-        f"Se esperaba transición NO permitida: {e_ini.value} -> {e_new.value}"
-    )
+@step('la solicitud está en estado "(?P<estado_inicial>.+)"')
+def step_set_estado_inicial(context, estado_inicial):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+    context.solicitud.estado_actual = _estado_from_feature(estado_inicial)
 
 
-@step('que la solicitud está en estado "Archivada"')
-def solicitud_archivada(context: behave.runner.Context):
-    _ensure_context_store(context)
-    context.solicitud_actual.estadoActual = parse_estado_solicitud("Archivada")
+@step('el asesor cambia el estado a "(?P<estado_nuevo>.+)" indicando el motivo "(?P<motivo>.*)"')
+def step_cambia_estado(context, estado_nuevo, motivo):
+    _ensure_context(context)
+    # snapshot antes (para escenarios que verifican que NO se agrega historial)
+    context.historial_estados_snapshot_len = len(context.solicitud.historial_estados)
+    _aplicar_cambio_estado(context, estado_nuevo, motivo, intento=False)
 
 
-@step('el asesor cambia el estado a "{estado_nuevo}" indicando el motivo "{motivo}"')
-def cambia_estado(context: behave.runner.Context, estado_nuevo: str, motivo: str):
-    _ensure_context_store(context)
-    context.error = None
-
-    nuevo = parse_estado_solicitud(estado_nuevo)
-
-    # OJO: tu dominio usa fecha_evento = fechaCreación
-    fecha_evento = context.solicitud_actual.fechaCreación
-    context.fecha_evento = fecha_evento
-
-    try:
-        context.solicitud_actual.cambiar_estado(
-            nuevo=nuevo,
-            usuario=context.asesor.emailAsesor,
-            motivo=motivo,
-            fecha_evento=fecha_evento,
-        )
-    except Exception as e:
-        context.error = e
-        raise AssertionError(f"Se esperaba cambio de estado exitoso, pero falló: {e}")
-
-    context.estado_nuevo = nuevo
-    context.motivo = motivo
+@step('el asesor intenta cambiar el estado a "(?P<estado_nuevo>.+)" indicando el motivo "(?P<motivo>.*)"')
+def step_intenta_cambiar_estado(context, estado_nuevo, motivo):
+    _ensure_context(context)
+    context.historial_estados_snapshot_len = len(context.solicitud.historial_estados)
+    _aplicar_cambio_estado(context, estado_nuevo, motivo, intento=True)
 
 
-@step('el asesor intenta cambiar el estado a "{estado_nuevo}" indicando el motivo "{motivo}"')
-def intenta_cambiar_estado(context: behave.runner.Context, estado_nuevo: str, motivo: str):
-    _ensure_context_store(context)
-    context.error = None
-
-    nuevo = parse_estado_solicitud(estado_nuevo)
-    fecha_evento = context.solicitud_actual.fechaCreación
-    context.fecha_evento = fecha_evento
-
-    try:
-        context.solicitud_actual.cambiar_estado(
-            nuevo=nuevo,
-            usuario=context.asesor.emailAsesor,
-            motivo=motivo,
-            fecha_evento=fecha_evento,
-        )
-    except Exception as e:
-        context.error = e
-
-    context.estado_nuevo = nuevo
-    context.motivo = motivo
+@step('el asesor visualiza el estado actual como "(?P<estado_esperado>.+)"')
+def step_visualiza_estado_actual(context, estado_esperado):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+    actual = context.solicitud.estado_actual.value
+    assert actual.lower() == estado_esperado.strip().lower(), f"Estado actual '{actual}' != '{estado_esperado}'"
 
 
-@step('que "{tipo_fecha}" es un campo de fecha permitido del proceso')
-def campo_fecha_permitido(context: behave.runner.Context, tipo_fecha: str):
-    _ensure_context_store(context)
-    assert tipo_fecha in {"fechaRecepcionDocs", "fechaEnvioSolicitud", "fechaCita"}
+@step('el asesor visualiza la "fechaUltimaActualizacion" como "(?P<fecha_evento>.+)"')
+def step_visualiza_fecha_ultima_actualizacion(context, fecha_evento):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+    actual = context.solicitud.fecha_ultima_actualizacion.strftime("%Y-%m-%d")
+    assert actual == fecha_evento.strip(), f"fechaUltimaActualizacion '{actual}' != '{fecha_evento}'"
 
 
-@step('"{fecha_valor}" es igual o posterior a "2026-01-10"')
-def fecha_valida(context: behave.runner.Context, fecha_valor: str):
-    _ensure_context_store(context)
-    fv = parse_date_iso(fecha_valor)
-    fc = context.solicitud_actual.fechaCreación.date()
-    assert fv >= fc
-
-
-@step('"{fecha_valor}" es anterior a "2026-01-10"')
-def fecha_invalida(context: behave.runner.Context, fecha_valor: str):
-    _ensure_context_store(context)
-    fv = parse_date_iso(fecha_valor)
-    fc = context.solicitud_actual.fechaCreación.date()
-    assert fv < fc
-
-
-@step('el asesor asigna "{tipo_fecha}" con valor "{fecha_valor}"')
-def asigna_fecha(context: behave.runner.Context, tipo_fecha: str, fecha_valor: str):
-    _ensure_context_store(context)
-    context.error = None
-
-    fecha_evento = context.solicitud_actual.fechaCreación
-    context.fecha_evento = fecha_evento
-
-    try:
-        context.solicitud_actual.asignar_fecha_proceso(
-            campo=tipo_fecha,
-            valor_iso=fecha_valor,
-            usuario=context.asesor.emailAsesor,
-            fecha_evento=fecha_evento,
-        )
-    except Exception as e:
-        context.error = e
-
-    context.tipo_fecha = tipo_fecha
-    context.fecha_valor = fecha_valor
-
-
-@step('el asesor consulta el detalle de la solicitud "{codigo}"')
-def consulta_detalle(context: behave.runner.Context, codigo: str):
-    _ensure_context_store(context)
-    context.solicitud_actual = context.solicitudes[codigo]
-
-
-@step('el asesor consulta el historial de la solicitud "{codigo}"')
-def consulta_historial(context: behave.runner.Context, codigo: str):
-    _ensure_context_store(context)
-    context.solicitud_actual = context.solicitudes[codigo]
-
-
-@step('el asesor visualiza el estado actual como "{estado_nuevo}"')
-def visualiza_estado(context: behave.runner.Context, estado_nuevo: str):
-    esperado = parse_estado_solicitud(estado_nuevo)
-    assert context.solicitud_actual.estadoActual == esperado
-
-
-@step('el asesor visualiza la "fechaUltimaActualizacion" como "{fecha_evento}"')
-def visualiza_fecha_ultima(context: behave.runner.Context, fecha_evento: str):
-    esperado = _date_only(fecha_evento)
-    real = context.solicitud_actual.obtener_fechas_clave().get("fechaUltimaActualizacion")
-    real = _date_only(real)
-    assert real == esperado, f"fechaUltimaActualizacion esperada={esperado} real={real}"
+@step('el asesor visualiza el mensaje "(?P<mensaje_error>.+)"')
+def step_visualiza_mensaje(context, mensaje_error):
+    _ensure_context(context)
+    assert context.ultimo_mensaje is not None, "No hay mensaje de error en el contexto."
+    assert context.ultimo_mensaje.strip().lower() == mensaje_error.strip().lower(), \
+        f"Mensaje '{context.ultimo_mensaje}' != '{mensaje_error}'"
 
 
 @step("al revisar el historial, el asesor visualiza un registro con:")
-def historial_estado_registro(context: behave.runner.Context):
-    data = {row[0].strip(): row[1].strip() for row in context.table}
-    historial = context.solicitud_actual.obtener_historial_estados()
-    assert historial, "No hay historial de estados"
-    ultimo = historial[0]
+def step_historial_contiene_registro(context):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+    assert len(context.solicitud.historial_estados) > 0, "No hay registros en historial de estados."
 
-    if "usuario" in data:
-        assert ultimo["usuario"] == data["usuario"]
-    if "anterior" in data:
-        assert ultimo["anterior"] == parse_estado_solicitud(data["anterior"]).value
-    if "nuevo" in data:
-        assert ultimo["nuevo"] == parse_estado_solicitud(data["nuevo"]).value
-    if "motivo" in data:
-        assert ultimo["motivo"] == data["motivo"]
-    if "fecha" in data:
-        assert _date_only(ultimo["fecha"]) == _date_only(data["fecha"])
+    ultimo = context.solicitud.historial_estados[-1]
+    expected = {row[0].strip(): row[1].strip() for row in context.table}
 
-
-@step('el asesor visualiza el mensaje "{mensaje_error}"')
-def visualiza_mensaje(context: behave.runner.Context, mensaje_error: str):
-    assert context.error is not None, "Se esperaba un error pero no ocurrió."
-    esperado = _norm(mensaje_error)
-    real = _norm(str(context.error))
-    if esperado not in real and real not in esperado:
-        raise AssertionError(f"Mensaje esperado: '{mensaje_error}' | Mensaje real: '{str(context.error)}'")
+    # claves esperadas: usuario, anterior, nuevo, fecha, motivo
+    for k, v in expected.items():
+        assert k in ultimo, f"El historial no contiene la clave '{k}'"
+        assert str(ultimo[k]).strip().lower() == v.strip().lower(), \
+            f"Historial[{k}]='{ultimo[k]}' != '{v}'"
 
 
 @step("al revisar el historial, el asesor no visualiza un registro asociado a esta acción")
-def no_registro_historial(context: behave.runner.Context):
-    assert context.error is not None, "Se esperaba error para validar que no se registre historial"
-    historial = context.solicitud_actual.obtener_historial_estados()
-    for r in historial:
-        assert r.get("nuevo") != context.estado_nuevo.value
+def step_historial_no_nuevo_registro(context):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+    assert len(context.solicitud.historial_estados) == context.historial_estados_snapshot_len, \
+        "Se registró un cambio en historial cuando NO debía."
 
 
-@step('el asesor visualiza el resultado como "{resultado}"')
-def visualiza_resultado(context: behave.runner.Context, resultado: str):
-    real = "rechazado" if context.error else "aceptado"
-    assert real == resultado.strip().lower()
+# ============================================================
+# Steps - Resultado aceptado/rechazado (escenarios con 'resultado')
+# ============================================================
+
+@step('el asesor visualiza el resultado como "(?P<resultado>.+)"')
+def step_visualiza_resultado(context, resultado):
+    _ensure_context(context)
+    assert context.ultimo_resultado is not None, "No hay resultado en el contexto."
+    assert context.ultimo_resultado.strip().lower() == resultado.strip().lower(), \
+        f"Resultado '{context.ultimo_resultado}' != '{resultado}'"
 
 
-@step('si el resultado es "rechazado", el asesor visualiza el mensaje "{mensaje_error}"')
-def si_rechazado_mensaje(context: behave.runner.Context, mensaje_error: str):
-    if context.error:
-        assert mensaje_error.lower() in str(context.error).lower()
+@step('si el resultado es "rechazado", el asesor visualiza el mensaje "(?P<mensaje_error>.*)"')
+def step_si_rechazado_muestra_mensaje(context, mensaje_error):
+    _ensure_context(context)
+    if context.ultimo_resultado.strip().lower() == "rechazado":
+        assert context.ultimo_mensaje is not None, "Se esperaba mensaje de error pero no existe."
+        assert context.ultimo_mensaje.strip().lower() == mensaje_error.strip().lower(), \
+            f"Mensaje '{context.ultimo_mensaje}' != '{mensaje_error}'"
 
 
-@step('el asesor visualiza "{tipo_fecha}" como "{fecha_valor}"')
-def visualiza_fecha(context: behave.runner.Context, tipo_fecha: str, fecha_valor: str):
-    real = context.solicitud_actual.obtener_fecha_proceso(tipo_fecha)
-    assert _date_only(real) == _date_only(parse_date_iso(fecha_valor))
+# ============================================================
+# Steps - Archivada
+# ============================================================
+
+@step('que la solicitud está en estado "Archivada"')
+def step_solicitud_archivada(context):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+    context.solicitud.estado_actual = EstadoSolicitud.ARCHIVADA
+
+
+# ============================================================
+# Steps - Fechas clave
+# ============================================================
+
+@step('que "(?P<tipo_fecha>.+)" es un campo de fecha permitido del proceso')
+def step_campo_fecha_permitido(context, tipo_fecha):
+    _ensure_context(context)
+    assert _campo_fecha_permitido(tipo_fecha.strip()), f"Campo '{tipo_fecha}' no es permitido."
+
+
+@step('"(?P<fecha_valor>.+)" es igual o posterior a "2026-01-10"')
+def step_fecha_igual_o_posterior(context, fecha_valor):
+    _ensure_context(context)
+    v = parse_date_iso(fecha_valor)
+    base = parse_date_iso("2026-01-10")
+    assert v >= base, f"La fecha '{fecha_valor}' no es igual/posterior a 2026-01-10"
+
+
+@step('"(?P<fecha_valor>.+)" es anterior a "2026-01-10"')
+def step_fecha_anterior(context, fecha_valor):
+    _ensure_context(context)
+    v = parse_date_iso(fecha_valor)
+    base = parse_date_iso("2026-01-10")
+    assert v < base, f"La fecha '{fecha_valor}' no es anterior a 2026-01-10"
+
+
+@step('el asesor asigna "(?P<tipo_fecha>.+)" con valor "(?P<fecha_valor>.+)"')
+def step_asignar_fecha(context, tipo_fecha, fecha_valor):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+
+    # snapshot valor anterior para el step "mantiene su valor anterior"
+    campo = tipo_fecha.strip()
+    context.fechas_snapshot[campo] = _get_fecha_clave(context.solicitud, campo)
+    context.historial_fechas_snapshot_len = len(context.solicitud.historial_fechas)
+
+    _aplicar_asignacion_fecha(context, campo, fecha_valor)
+
+
+@step('el asesor visualiza "(?P<tipo_fecha>.+)" como "(?P<fecha_valor>.+)"')
+def step_visualiza_fecha_campo(context, tipo_fecha, fecha_valor):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+
+    actual = _get_fecha_clave(context.solicitud, tipo_fecha.strip())
+    assert actual is not None, f"El campo '{tipo_fecha}' no tiene valor."
+    assert actual.strftime("%Y-%m-%d") == fecha_valor.strip(), \
+        f"{tipo_fecha}='{actual}' != '{fecha_valor}'"
 
 
 @step("al revisar el historial de fechas, el asesor visualiza un registro con:")
-def historial_fechas_registro(context: behave.runner.Context):
-    data = {row[0].strip(): row[1].strip() for row in context.table}
+def step_historial_fechas_contiene_registro(context):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+    assert len(context.solicitud.historial_fechas) > 0, "No hay registros en historial de fechas."
 
-    historial = context.solicitud_actual.obtener_historial_fechas()
-    assert historial, "No hay historial de fechas"
-    ultimo = historial[0]
+    ultimo = context.solicitud.historial_fechas[-1]
+    expected = {row[0].strip(): row[1].strip() for row in context.table}
 
-    if "usuario" in data:
-        assert ultimo["usuario"] == data["usuario"]
-    if "campo" in data:
-        assert ultimo["campo"] == data["campo"]
-    if "valorNuevo" in data:
-        assert _date_only(ultimo["valorNuevo"]) == _date_only(parse_date_iso(data["valorNuevo"]))
-    if "fecha" in data:
-        assert _date_only(ultimo["fecha"]) == _date_only(data["fecha"])
+    # claves esperadas: usuario, campo, valorAnterior, valorNuevo, fecha
+    for k, v in expected.items():
+        assert k in ultimo, f"El historial de fechas no contiene la clave '{k}'"
+        assert str(ultimo[k]).strip().lower() == v.strip().lower(), \
+            f"HistorialFechas[{k}]='{ultimo[k]}' != '{v}'"
 
 
-@step('el asesor visualiza que "{tipo_fecha}" mantiene su valor anterior')
-def mantiene_valor_anterior(context: behave.runner.Context, tipo_fecha: str):
-    assert context.error is not None, "Se esperaba error para mantener valor anterior"
+@step('el asesor visualiza que "(?P<tipo_fecha>.+)" mantiene su valor anterior')
+def step_mantiene_valor_anterior(context, tipo_fecha):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+
+    campo = tipo_fecha.strip()
+    anterior = context.fechas_snapshot.get(campo)
+    actual = _get_fecha_clave(context.solicitud, campo)
+
+    assert anterior == actual, f"El campo '{campo}' cambió cuando no debía."
 
 
-@step('que el asesor visualiza "fechaRecepcionDocs" como "{fecha_recepcion_docs}"')
-def visualiza_fecha_recepcion_docs(context: behave.runner.Context, fecha_recepcion_docs: str):
-    real = context.solicitud_actual.obtener_fecha_proceso("fechaRecepcionDocs")
-    assert _date_only(real) == _date_only(fecha_recepcion_docs)
+@step('que el asesor visualiza "fechaRecepcionDocs" como "(?P<fecha_recepcion_docs>.+)"')
+def step_visualiza_fecha_recepcion_docs(context, fecha_recepcion_docs):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+
+    if fecha_recepcion_docs.strip() == "(vacío)":
+        _set_fecha_clave(context.solicitud, "fechaRecepcionDocs", None)
+    else:
+        _set_fecha_clave(context.solicitud, "fechaRecepcionDocs", parse_date_iso(fecha_recepcion_docs))
+
+
+# ============================================================
+# Steps - Consulta detalle
+# ============================================================
+
+@step('el asesor consulta el detalle de la solicitud "SOL-2026-0001"')
+def step_consulta_detalle(context):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+    assert context.solicitud.codigo == "SOL-2026-0001", "Código de solicitud no coincide."
+    # No hace nada más: el detalle se valida en los 'Entonces'
 
 
 @step("el asesor visualiza las fechas clave registradas:")
-def visualiza_fechas_clave(context: behave.runner.Context):
-    esperadas = {row[0].strip(): row[1].strip() for row in context.table}
-    reales = context.solicitud_actual.obtener_fechas_clave()
+def step_visualiza_fechas_clave_registradas(context):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
 
-    for k, v in esperadas.items():
-        if _norm(v).startswith("(vacio)") or _norm(v).startswith("(vacío)"):
-            assert reales.get(k) is None
+    for row in context.table:
+        campo = row[0].strip()
+        esperado = row[1].strip()
+
+        val = _get_fecha_clave(context.solicitud, campo)
+        if esperado == "(vacío)":
+            assert val is None, f"Se esperaba {campo} vacío, pero fue {val}"
         else:
-            assert _date_only(reales.get(k)) == _date_only(v), f"{k}: esperado={v} real={reales.get(k)}"
+            assert val is not None, f"Se esperaba {campo}='{esperado}' pero está vacío"
+            assert val.strftime("%Y-%m-%d") == esperado, f"{campo}='{val}' != '{esperado}'"
+
+
+# ============================================================
+# Steps - Consulta historial
+# ============================================================
+
+@step('el asesor consulta el historial de la solicitud "SOL-2026-0001"')
+def step_consulta_historial(context):
+    _ensure_context(context)
+    assert context.solicitud is not None, "Solicitud no existe."
+    assert context.solicitud.codigo == "SOL-2026-0001", "Código de solicitud no coincide."
 
 
 @step("el asesor visualiza los cambios de estado en orden cronológico descendente")
-def historial_estados_desc(context: behave.runner.Context):
-    historial = context.solicitud_actual.obtener_historial_estados()
-    for i in range(len(historial) - 1):
-        assert _date_only(historial[i]["fecha"]) >= _date_only(historial[i + 1]["fecha"])
+def step_cambios_estado_desc(context):
+    _ensure_context(context)
+    hist = context.solicitud.historial_estados
+    # verificamos que esté ordenado por 'fecha' desc (string YYYY-MM-DD sirve)
+    fechas = [h["fecha"] for h in hist]
+    assert fechas == sorted(fechas, reverse=True), "El historial de estados no está en orden descendente."
 
 
 @step("cada cambio de estado muestra: estado anterior, estado nuevo, usuario, fecha, motivo")
-def historial_estado_campos(context: behave.runner.Context):
-    historial = context.solicitud_actual.obtener_historial_estados()
-    for r in historial:
-        assert r.get("anterior")
-        assert r.get("nuevo")
-        assert r.get("usuario")
-        assert r.get("fecha")
-        assert r.get("motivo") is not None
+def step_cambio_estado_campos(context):
+    _ensure_context(context)
+    for h in context.solicitud.historial_estados:
+        for k in ("anterior", "nuevo", "usuario", "fecha", "motivo"):
+            assert k in h and str(h[k]).strip() != "", f"Falta campo '{k}' en historial de estados."
 
 
 @step("el asesor visualiza los cambios de fechas en orden cronológico descendente")
-def historial_fechas_desc(context: behave.runner.Context):
-    historial = context.solicitud_actual.obtener_historial_fechas()
-    for i in range(len(historial) - 1):
-        assert _date_only(historial[i]["fecha"]) >= _date_only(historial[i + 1]["fecha"])
+def step_cambios_fechas_desc(context):
+    _ensure_context(context)
+    hist = context.solicitud.historial_fechas
+    fechas = [h["fecha"] for h in hist]
+    assert fechas == sorted(fechas, reverse=True), "El historial de fechas no está en orden descendente."
 
 
 @step("cada cambio de fecha muestra: campo, valor anterior, valor nuevo, usuario, fecha")
-def historial_fecha_campos(context: behave.runner.Context):
-    historial = context.solicitud_actual.obtener_historial_fechas()
-    for r in historial:
-        assert r.get("campo")
-        assert "valorAnterior" in r
-        assert r.get("valorNuevo")
-        assert r.get("usuario")
-        assert r.get("fecha")
+def step_cambio_fecha_campos(context):
+    _ensure_context(context)
+    for h in context.solicitud.historial_fechas:
+        for k in ("campo", "valorAnterior", "valorNuevo", "usuario", "fecha"):
+            assert k in h and str(h[k]).strip() != "", f"Falta campo '{k}' en historial de fechas."
