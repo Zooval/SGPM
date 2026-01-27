@@ -6,17 +6,20 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 
-
 use_step_matcher("re")
 
 
-# ------------------------------------------------------------
-# Modelo (según diagrama de clases)
-# ------------------------------------------------------------
+# ============================================================
+# ENUM (según diagrama; necesario para Asesor)
+# ============================================================
 class RolUsuario(Enum):
     ASESOR = "ASESOR"
+    SUPERVISOR = "SUPERVISOR"
 
 
+# ============================================================
+# Clases necesarias para la feature (según diagrama)
+# ============================================================
 @dataclass
 class Solicitante:
     cedula: str
@@ -26,6 +29,7 @@ class Solicitante:
     telefono: str
     direccion: str
     fecha_nacimiento: date
+    habilitado: bool
 
 
 @dataclass
@@ -62,8 +66,18 @@ def _row_from_table(context) -> dict:
 
 
 def _parse_date_iso(value: str) -> date:
-    # YYYY-MM-DD
-    return date.fromisoformat(value)
+    return date.fromisoformat(value)  # YYYY-MM-DD
+
+
+def _parse_bool(value: str, default: bool = True) -> bool:
+    s = (value or "").strip().lower()
+    if s == "":
+        return default
+    if s in ("true", "1", "si", "sí", "s", "y", "yes"):
+        return True
+    if s in ("false", "0", "no", "n"):
+        return False
+    return default
 
 
 def _validate_obligatorios(data: dict, obligatorios: list[str]):
@@ -73,22 +87,22 @@ def _validate_obligatorios(data: dict, obligatorios: list[str]):
 
 
 def _to_solicitante(data: dict) -> Solicitante:
-    # Mapeo desde tu feature (nombre/apellido) a la clase (nombres/apellidos)
-    # Tu tabla usa: cedula, nombre, apellido, correo, fecha_nacimiento, telefono, direccion
-    solicitante_data = {
-        "cedula": data.get("cedula", ""),
-        "nombres": data.get("nombre", data.get("nombres", "")),
-        "apellidos": data.get("apellido", data.get("apellidos", "")),
-        "correo": data.get("correo", ""),
-        "telefono": data.get("telefono", ""),
-        "direccion": data.get("direccion", ""),
-        "fecha_nacimiento": _parse_date_iso(data.get("fecha_nacimiento", "")),
-    }
-    return Solicitante(**solicitante_data)
+    # En la feature se usa: nombre/apellido
+    # En la clase: nombres/apellidos
+    return Solicitante(
+        cedula=data.get("cedula", "").strip(),
+        nombres=data.get("nombre", data.get("nombres", "")).strip(),
+        apellidos=data.get("apellido", data.get("apellidos", "")).strip(),
+        correo=data.get("correo", "").strip(),
+        telefono=data.get("telefono", "").strip(),
+        direccion=data.get("direccion", "").strip(),
+        fecha_nacimiento=_parse_date_iso(data.get("fecha_nacimiento", "").strip()),
+        habilitado=_parse_bool(data.get("habilitado", ""), default=True),  # si no viene, True
+    )
 
 
 # ------------------------------------------------------------
-# Steps (interacción, en memoria)
+# Steps (interacción en memoria)
 # ------------------------------------------------------------
 @step(r'que soy un asesor autenticado')
 def dado_asesor_autenticado(context: behave.runner.Context):
@@ -105,7 +119,7 @@ def dado_asesor_autenticado(context: behave.runner.Context):
 @step(r'que no existe un solicitante con cédula "(?P<cedula>[^"]+)"')
 def dado_no_existe_solicitante(context: behave.runner.Context, cedula: str):
     _ensure_store(context)
-    assert cedula not in context.solicicitantes if hasattr(context, "solicicitantes") else cedula not in context.solicitantes
+    assert cedula not in context.solicitantes, f"Se esperaba que NO exista {cedula}, pero ya está registrado."
 
 
 @step(r'que existe un solicitante con los siguientes datos:')
@@ -114,8 +128,6 @@ def dado_existe_solicitante_con_datos(context: behave.runner.Context):
     assert context.asesor is not None, "Para gestionar solicitantes debes estar autenticado como asesor."
 
     data = _row_from_table(context)
-
-    # Obligatorios (mínimos para manejar ficha)
     obligatorios = ["cedula", "nombre", "apellido", "correo", "fecha_nacimiento", "telefono", "direccion"]
     _validate_obligatorios(data, obligatorios)
 
@@ -151,7 +163,6 @@ def cuando_registro_solicitante(context: behave.runner.Context):
 
 @step(r'intento registrar un solicitante con los siguientes datos:')
 def cuando_intento_registrar_solicitante(context: behave.runner.Context):
-    # reutiliza la misma lógica, pero el escenario espera error
     return cuando_registro_solicitante(context)
 
 
@@ -185,9 +196,9 @@ def cuando_actualizo_contacto(context: behave.runner.Context, cedula: str):
         _validate_obligatorios(cambios, obligatorios)
 
         s = context.solicitantes[cedula]
-        s.correo = cambios["correo"]
-        s.telefono = cambios["telefono"]
-        s.direccion = cambios["direccion"]
+        s.correo = cambios["correo"].strip()
+        s.telefono = cambios["telefono"].strip()
+        s.direccion = cambios["direccion"].strip()
 
         context.ultima_actualizacion = cedula
 
@@ -210,7 +221,6 @@ def entonces_ficha_actualizada(context: behave.runner.Context):
     cedula = context.ultima_actualizacion
     assert cedula in context.solicitantes, "No existe ficha para validar."
 
-    # Validación básica: que no estén vacíos (ya fueron validados en el paso de actualización)
     s = context.solicitantes[cedula]
     assert s.correo.strip()
     assert s.telefono.strip()
@@ -222,7 +232,7 @@ def entonces_error_obligatorios(context: behave.runner.Context):
     _ensure_store(context)
     assert context.error is not None, "Se esperaba un error por datos obligatorios, pero no hubo error."
     msg = str(context.error).lower()
-    assert "faltan datos obligatorios" in msg or "faltan" in msg or "obligatorios" in msg, \
+    assert ("faltan datos obligatorios" in msg) or ("faltan" in msg) or ("obligatorios" in msg), \
         f"El error no corresponde a datos obligatorios: {context.error}"
 
 
@@ -243,5 +253,5 @@ def entonces_error_duplicado(context: behave.runner.Context):
 def entonces_no_crea_nuevo(context: behave.runner.Context):
     _ensure_store(context)
     assert context.error is not None, "Se esperaba que el registro duplicado falle."
-    # Con dict no puede haber 2 con la misma cédula; verificamos que el existente sigue siendo 1
+    # dict evita duplicados por llave; garantizamos que no se duplicó la cédula
     assert len([c for c in context.solicitantes.keys() if c == "0102030405"]) <= 1

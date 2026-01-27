@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 # features/steps/recepcion_documentos_steps.py
 
+import behave.runner
 from behave import step, use_step_matcher
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from datetime import date, datetime, timedelta
 
 use_step_matcher("re")
 
-# -------------------------------------------------------------------
-# Fallback (por si aún no tienes las entidades importables en tu proyecto)
-# Si ya tienes tus clases en un módulo (ej: SGPM.domain.entities),
-# puedes reemplazar estas definiciones por imports directos.
-# -------------------------------------------------------------------
 
+# ============================================================
+# Enums necesarios (según diagrama)
+# ============================================================
 class TipoDocumento(Enum):
     PASAPORTE = "PASAPORTE"
     ANTECEDENTES = "ANTECEDENTES"
@@ -30,133 +29,191 @@ class EstadoDocumento(Enum):
     VENCIDO = "VENCIDO"
 
 
-@dataclass
-class Documento:
-    id_documento: str
-    tipo: TipoDocumento
-    estado: EstadoDocumento
-    fecha_expiracion: date | None = None
-    version_actual: int = 1
-    observacion: str = ""
+class TipoServicio(Enum):
+    VISA_TURISMO = "VISA_TURISMO"
+    VISA_TRABAJO = "VISA_TRABAJO"
+    ESTUDIOS = "ESTUDIOS"
+    RESIDENCIA = "RESIDENCIA"
 
 
-@dataclass
-class SolicitudMigratoria:
-    codigo: str
-    fecha_creacion: datetime = field(default_factory=datetime.now)
-    activa: bool = True
-    documentos: list[Documento] = field(default_factory=list)
+class EstadoSolicitud(Enum):
+    CREADA = "CREADA"
+    EN_REVISION = "EN_REVISION"
+    DOCUMENTOS_PENDIENTES = "DOCUMENTOS_PENDIENTES"
+    ENVIADA = "ENVIADA"
+    APROBADA = "APROBADA"
+    RECHAZADA = "RECHAZADA"
+    CERRADA = "CERRADA"
 
 
+# ============================================================
+# Clases necesarias (según diagrama: atributos exactos)
+# ============================================================
 @dataclass
 class Solicitante:
     cedula: str
     nombres: str
     apellidos: str
     correo: str
-    habilitado: bool = False
-    solicitud_activa: SolicitudMigratoria | None = None
+    telefono: str
+    direccion: str
+    fecha_nacimiento: date
+    habilitado: bool
 
 
-# -------------------------------------------------------------------
-# Helpers
-# -------------------------------------------------------------------
+@dataclass
+class SolicitudMigratoria:
+    codigo: str
+    tipo_servicio: TipoServicio
+    estado_actual: EstadoSolicitud
+    fecha_creacion: datetime
+    fecha_expiracion: datetime
 
-def _ensure_context(context):
+
+@dataclass
+class Documento:
+    id_documento: str
+    tipo: TipoDocumento
+    estado: EstadoDocumento
+    fecha_expiracion: date
+    version_actual: int
+    observacion: str
+
+
+# ============================================================
+# Helpers de contexto (relaciones en memoria)
+# ============================================================
+def _ensure_context(context: behave.runner.Context):
     if not hasattr(context, "solicitante"):
-        context.solicitante = None
-    if not hasattr(context, "solicitud"):
-        context.solicitud = None
+        context.solicitante = None  # Solicitante actual
+    if not hasattr(context, "solicitud_activa"):
+        context.solicitud_activa = None  # SolicitudMigratoria actual (en curso)
     if not hasattr(context, "documento_actual"):
-        context.documento_actual = None
+        context.documento_actual = None  # Documento en operación
     if not hasattr(context, "error"):
         context.error = None
+
+    # Relaciones (diagrama):
+    # Solicitante "1" o-- "0..*" Documento : posee
+    if not hasattr(context, "documentos_por_solicitante"):
+        context.documentos_por_solicitante = {}  # cedula -> list[Documento]
+
+    # Solicitante "1" o-- "0..*" SolicitudMigratoria : crea
+    if not hasattr(context, "solicitudes_por_solicitante"):
+        context.solicitudes_por_solicitante = {}  # cedula -> list[SolicitudMigratoria]
+
+    # para requeridos en criterio 4
     if not hasattr(context, "documentos_requeridos"):
-        context.documentos_requeridos = []
+        context.documentos_requeridos = []  # list[TipoDocumento]
+
+
+def _docs_of_current(context) -> list:
+    _ensure_context(context)
+    assert context.solicitante is not None, "No existe solicitante en el contexto."
+    return context.documentos_por_solicitante.setdefault(context.solicitante.cedula, [])
 
 
 def _find_doc_by_estado(context, estado: EstadoDocumento) -> Documento | None:
-    if context.solicitud is None:
-        return None
-    for d in context.solicitud.documentos:
+    for d in _docs_of_current(context):
         if d.estado == estado:
             return d
     return None
 
 
-# -------------------------------------------------------------------
-# Steps (coinciden con tus frases exactas del .feature)
-# -------------------------------------------------------------------
+def _find_doc_by_tipo(context, tipo: TipoDocumento) -> Documento | None:
+    for d in _docs_of_current(context):
+        if d.tipo == tipo:
+            return d
+    return None
 
-@step("que existe un solicitante registrado con un proceso de visa activo")
-def step_existe_solicitante_con_proceso_activo(context):
+
+# ============================================================
+# Steps (coinciden con tu .feature)
+# ============================================================
+@step(r"que existe un solicitante registrado con un proceso de visa activo")
+def step_existe_solicitante_con_proceso_activo(context: behave.runner.Context):
     _ensure_context(context)
 
-    solicitud = SolicitudMigratoria(codigo="SOL-001", activa=True)
     solicitante = Solicitante(
         cedula="0102030405",
         nombres="Bryan",
         apellidos="Perez",
         correo="bryan@example.com",
+        telefono="0999999999",
+        direccion="Av. Principal 123",
+        fecha_nacimiento=date(1998, 5, 12),
         habilitado=False,
-        solicitud_activa=solicitud,
     )
 
-    context.solicitud = solicitud
+    # Solicitud migratoria (proceso activo) -> lo modelamos como "no cerrada"
+    ahora = datetime.now()
+    solicitud = SolicitudMigratoria(
+        codigo="SOL-001",
+        tipo_servicio=TipoServicio.VISA_TURISMO,
+        estado_actual=EstadoSolicitud.DOCUMENTOS_PENDIENTES,
+        fecha_creacion=ahora,
+        fecha_expiracion=ahora + timedelta(days=60),
+    )
+
     context.solicitante = solicitante
+    context.solicitud_activa = solicitud
+
+    context.documentos_por_solicitante.setdefault(solicitante.cedula, [])
+    context.solicitudes_por_solicitante.setdefault(solicitante.cedula, []).append(solicitud)
+
+    context.documento_actual = None
     context.error = None
 
 
-@step("que el solicitante entrega un documento")
-def step_solicitante_entrega_documento(context):
+# --------------------- Criterio 1 ---------------------
+@step(r"que el solicitante entrega un documento")
+def step_solicitante_entrega_documento(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.solicitante is not None and context.solicitud is not None, \
-        "No existe solicitante/proceso activo en el contexto."
+    assert context.solicitante is not None and context.solicitud_activa is not None, \
+        "No existe solicitante o proceso de visa activo."
 
-    # Documento entregado (aún no registrado en expediente)
+    # Se crea el documento "entregado" (aún no asociado al expediente).
+    # Al registrarlo, quedará en estado RECIBIDO.
     context.documento_actual = Documento(
         id_documento="DOC-001",
         tipo=TipoDocumento.OTROS,
-        estado=EstadoDocumento.RECIBIDO,  # al registrarlo quedará RECIBIDO
-        fecha_expiracion=None,
+        estado=EstadoDocumento.RECIBIDO,
+        fecha_expiracion=date.today() + timedelta(days=365),  # por defecto: válido 1 año
         version_actual=1,
         observacion="",
     )
 
 
-@step("el asesor registra el documento")
-def step_asesor_registra_documento(context):
+@step(r"el asesor registra el documento")
+def step_asesor_registra_documento(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.solicitud is not None, "No existe solicitud en el contexto."
     assert context.documento_actual is not None, "No hay documento entregado para registrar."
 
-    # Registrar en el expediente (lista de documentos de la solicitud)
+    # Registrar => se asocia al solicitante (expediente) y queda RECIBIDO
     context.documento_actual.estado = EstadoDocumento.RECIBIDO
-    context.solicitud.documentos.append(context.documento_actual)
+    _docs_of_current(context).append(context.documento_actual)
 
 
-@step('el documento queda registrado con estado "RECIBIDO"')
-def step_doc_queda_recibido(context):
+@step(r'el documento queda registrado con estado "RECIBIDO"')
+def step_doc_queda_recibido(context: behave.runner.Context):
     _ensure_context(context)
     assert context.documento_actual is not None, "No existe documento actual."
     assert context.documento_actual.estado == EstadoDocumento.RECIBIDO, \
-        f"Estado esperado RECIBIDO, obtenido: {context.documento_actual.estado.value}"
+        f"Se esperaba RECIBIDO, pero fue {context.documento_actual.estado.value}"
 
 
-@step("se asocia al expediente del solicitante")
-def step_doc_asociado_expediente(context):
+@step(r"se asocia al expediente del solicitante")
+def step_doc_asociado_expediente(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.solicitud is not None, "No existe solicitud en el contexto."
     assert context.documento_actual is not None, "No existe documento actual."
+    assert context.documento_actual in _docs_of_current(context), \
+        "El documento no fue asociado al expediente del solicitante."
 
-    assert context.documento_actual in context.solicitud.documentos, \
-        "El documento no está asociado al expediente (solicitud)."
 
-
-@step('que existe un documento con estado "RECIBIDO"')
-def step_existe_documento_recibido(context):
+# --------------------- Criterio 2 ---------------------
+@step(r'que existe un documento con estado "RECIBIDO"')
+def step_existe_documento_recibido(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.solicitud is not None, "No existe solicitud en el contexto."
 
     doc = _find_doc_by_estado(context, EstadoDocumento.RECIBIDO)
     if doc is None:
@@ -164,135 +221,130 @@ def step_existe_documento_recibido(context):
             id_documento="DOC-REC-001",
             tipo=TipoDocumento.PASAPORTE,
             estado=EstadoDocumento.RECIBIDO,
-            fecha_expiracion=None,
+            fecha_expiracion=date.today() + timedelta(days=365),
             version_actual=1,
             observacion="",
         )
-        context.solicitud.documentos.append(doc)
+        _docs_of_current(context).append(doc)
 
     context.documento_actual = doc
 
 
-@step("el asesor revisa el contenido del documento y es correcto")
-def step_revisa_documento_correcto(context):
+@step(r"el asesor revisa el contenido del documento y es correcto")
+def step_revisa_documento_correcto(context: behave.runner.Context):
     _ensure_context(context)
     assert context.documento_actual is not None, "No existe documento actual."
     assert context.documento_actual.estado == EstadoDocumento.RECIBIDO, \
-        "Para revisar como correcto, el documento debe estar en estado RECIBIDO."
-
-    # Simula la revisión correcta (no cambia estado aquí; lo hace el siguiente step)
+        "Para revisarlo como correcto, debe estar en estado RECIBIDO."
     context.error = None
 
 
-@step('el asesor marca el documento con estado "APROBADO"')
-def step_marcar_documento_aprobado(context):
+@step(r'el asesor marca el documento con estado "APROBADO"')
+def step_marcar_documento_aprobado(context: behave.runner.Context):
     _ensure_context(context)
     assert context.documento_actual is not None, "No existe documento actual."
     assert context.documento_actual.estado == EstadoDocumento.RECIBIDO, \
-        "Solo se puede aprobar un documento que esté en estado RECIBIDO."
-
+        "Solo se puede aprobar un documento en estado RECIBIDO."
     context.documento_actual.estado = EstadoDocumento.APROBADO
+    assert context.documento_actual.estado == EstadoDocumento.APROBADO
 
 
-@step("el asesor identifica una inconsistencia en el documento")
-def step_identifica_inconsistencia(context):
+# --------------------- Criterio 3 ---------------------
+@step(r"el asesor identifica una inconsistencia en el documento")
+def step_identifica_inconsistencia(context: behave.runner.Context):
     _ensure_context(context)
     assert context.documento_actual is not None, "No existe documento actual."
     assert context.documento_actual.estado == EstadoDocumento.RECIBIDO, \
-        "Para identificar inconsistencia, el documento debe estar en estado RECIBIDO."
-
-    # Marca internamente que hubo inconsistencia
-    context.error = "Documento con inconsistencia detectada"
+        "Para identificar inconsistencia, debe estar en estado RECIBIDO."
+    context.error = "Inconsistencia detectada"
 
 
-@step("el asesor registra una observación")
-def step_registra_observacion(context):
+@step(r"el asesor registra una observación")
+def step_registra_observacion(context: behave.runner.Context):
     _ensure_context(context)
     assert context.documento_actual is not None, "No existe documento actual."
-
-    # Observación mínima (puedes cambiar el texto si tu dominio exige formato)
+    # observación mínima
     context.documento_actual.observacion = "Inconsistencia encontrada en el documento."
 
 
-@step('el documento queda marcado con estado "RECHAZADO"')
-def step_doc_queda_rechazado(context):
+@step(r'el documento queda marcado con estado "RECHAZADO"')
+def step_doc_queda_rechazado(context: behave.runner.Context):
     _ensure_context(context)
     assert context.documento_actual is not None, "No existe documento actual."
-
-    # Si llega aquí por el escenario 3, lo marcamos como rechazado
     context.documento_actual.estado = EstadoDocumento.RECHAZADO
     assert context.documento_actual.estado == EstadoDocumento.RECHAZADO
 
 
-@step("que el solicitante tiene todos los documentos requeridos")
-def step_tiene_todos_documentos_requeridos(context):
+# --------------------- Criterio 4 ---------------------
+@step(r"que el solicitante tiene todos los documentos requeridos")
+def step_tiene_todos_documentos_requeridos(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.solicitud is not None and context.solicitante is not None, \
-        "No existe solicitante/proceso activo en el contexto."
 
-    # Definimos un set mínimo de requeridos para el escenario (ajústalo si tu dominio lo define)
+    # set mínimo de requeridos (ajústalo si tu proceso define otros)
     context.documentos_requeridos = [
         TipoDocumento.PASAPORTE,
         TipoDocumento.ANTECEDENTES,
     ]
 
-    # Aseguramos que estén presentes en el expediente
-    presentes = {d.tipo for d in context.solicitud.documentos}
+    # asegurar que existan en el expediente del solicitante
     for tipo in context.documentos_requeridos:
-        if tipo not in presentes:
-            context.solicitud.documentos.append(
+        if _find_doc_by_tipo(context, tipo) is None:
+            _docs_of_current(context).append(
                 Documento(
                     id_documento=f"DOC-{tipo.value}-001",
                     tipo=tipo,
                     estado=EstadoDocumento.RECIBIDO,
-                    fecha_expiracion=None,
+                    fecha_expiracion=date.today() + timedelta(days=365),
                     version_actual=1,
                     observacion="",
                 )
             )
 
 
-@step('todos los documentos están en estado "APROBADO"')
-def step_todos_documentos_aprobados(context):
+@step(r'todos los documentos están en estado "APROBADO"')
+def step_todos_documentos_aprobados(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.solicitud is not None, "No existe solicitud en el contexto."
     assert context.documentos_requeridos, "No se definieron documentos requeridos."
 
-    # Aprueba todos los requeridos
-    for d in context.solicitud.documentos:
-        if d.tipo in context.documentos_requeridos:
-            d.estado = EstadoDocumento.APROBADO
-
-    # Verifica condición
+    # aprobar todos los requeridos
     for tipo in context.documentos_requeridos:
-        doc = next((d for d in context.solicitud.documentos if d.tipo == tipo), None)
+        doc = _find_doc_by_tipo(context, tipo)
         assert doc is not None, f"Falta el documento requerido: {tipo.value}"
-        assert doc.estado == EstadoDocumento.APROBADO, \
-            f"El documento {tipo.value} no está APROBADO."
+        doc.estado = EstadoDocumento.APROBADO
+
+    # validar condición
+    for tipo in context.documentos_requeridos:
+        doc = _find_doc_by_tipo(context, tipo)
+        assert doc.estado == EstadoDocumento.APROBADO, f"{tipo.value} no está APROBADO."
 
 
-@step("el asesor marca al solicitante como habilitado")
-def step_marcar_solicitante_habilitado(context):
+@step(r"el asesor marca al solicitante como habilitado")
+def step_marcar_solicitante_habilitado(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.solicitante is not None, "No existe solicitante en el contexto."
+    assert context.solicitante is not None, "No existe solicitante."
 
-    # Regla: habilitado si todos los requeridos están aprobados
+    # regla: habilitado solo si los requeridos están aprobados
+    for tipo in context.documentos_requeridos:
+        doc = _find_doc_by_tipo(context, tipo)
+        assert doc is not None, f"Falta el documento requerido: {tipo.value}"
+        assert doc.estado == EstadoDocumento.APROBADO, f"El documento {tipo.value} no está APROBADO."
+
     context.solicitante.habilitado = True
 
 
-@step("el solicitante queda habilitado para el proceso de visa")
-def step_solicitante_queda_habilitado(context):
+@step(r"el solicitante queda habilitado para el proceso de visa")
+def step_solicitante_queda_habilitado(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.solicitante is not None, "No existe solicitante en el contexto."
+    assert context.solicitante is not None, "No existe solicitante."
     assert context.solicitante.habilitado is True, "El solicitante no quedó habilitado."
 
 
-@step("que existe un documento con fecha de expiración")
-def step_existe_documento_con_expiracion(context):
+# --------------------- Criterio 5 ---------------------
+@step(r"que existe un documento con fecha de expiración")
+def step_existe_documento_con_expiracion(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.solicitud is not None, "No existe solicitud en el contexto."
 
-    # Creamos un documento con expiración (por defecto: ayer, para que pueda vencer hoy)
+    # documento con expiración (ayer) para forzar vencimiento
     doc = Documento(
         id_documento="DOC-EXP-001",
         tipo=TipoDocumento.PASAPORTE,
@@ -301,20 +353,20 @@ def step_existe_documento_con_expiracion(context):
         version_actual=1,
         observacion="",
     )
-    context.solicitud.documentos.append(doc)
+    _docs_of_current(context).append(doc)
     context.documento_actual = doc
 
 
-@step('el documento se encuentra en estado "APROBADO"')
-def step_documento_esta_aprobado(context):
+@step(r'el documento se encuentra en estado "APROBADO"')
+def step_documento_esta_aprobado(context: behave.runner.Context):
     _ensure_context(context)
     assert context.documento_actual is not None, "No existe documento actual."
     context.documento_actual.estado = EstadoDocumento.APROBADO
     assert context.documento_actual.estado == EstadoDocumento.APROBADO
 
 
-@step("la fecha de hoy supera la fecha de expiración del documento")
-def step_hoy_supera_expiracion(context):
+@step(r"la fecha de hoy supera la fecha de expiración del documento")
+def step_hoy_supera_expiracion(context: behave.runner.Context):
     _ensure_context(context)
     assert context.documento_actual is not None, "No existe documento actual."
     assert context.documento_actual.fecha_expiracion is not None, "El documento no tiene fecha de expiración."
@@ -323,14 +375,12 @@ def step_hoy_supera_expiracion(context):
     if hoy > context.documento_actual.fecha_expiracion:
         context.documento_actual.estado = EstadoDocumento.VENCIDO
     else:
-        raise AssertionError(
-            f"Hoy ({hoy}) no supera la expiración ({context.documento_actual.fecha_expiracion})."
-        )
+        raise AssertionError(f"Hoy ({hoy}) no supera la expiración ({context.documento_actual.fecha_expiracion}).")
 
 
-@step('el documento queda marcado con estado "VENCIDO"')
-def step_doc_queda_vencido(context):
+@step(r'el documento queda marcado con estado "VENCIDO"')
+def step_doc_queda_vencido(context: behave.runner.Context):
     _ensure_context(context)
     assert context.documento_actual is not None, "No existe documento actual."
     assert context.documento_actual.estado == EstadoDocumento.VENCIDO, \
-        f"Estado esperado VENCIDO, obtenido: {context.documento_actual.estado.value}"
+        f"Se esperaba VENCIDO, pero fue {context.documento_actual.estado.value}"

@@ -1,15 +1,36 @@
 @startuml
 ' https://plantuml.com/class-diagram
-
 skinparam classAttributeIconSize 0
 
-' ===== Value Objects / Tipos =====
+' ============================================================
+' ===== Value Objects / Tipos existentes =====
+' ============================================================
 class RangoFechaHora <<value_object>> {
   +inicio: datetime
   +fin: datetime
 }
 
-' ===== Clases =====
+' ============================================================
+' ===== NUEVO: Value Object para reportes =====
+' ============================================================
+class FiltroReporteTareas <<value_object>> {
+  +desde: datetime
+  +hasta: datetime
+  +asesor_email: str  ' opcional (si viene vacío => reporte global)
+}
+
+class EstadisticasTareas <<value_object>> {
+  +total_tareas: int
+  +por_estado: dict
+  +por_prioridad: dict
+  +vencidas_total: int
+  +vencidas_por_asesor: dict
+  +completadas_por_asesor: dict
+}
+
+' ============================================================
+' ===== Clases existentes =====
+' ============================================================
 class Solicitante {
   +cedula: str
   +nombres: str
@@ -70,7 +91,19 @@ class Notificacion {
   +creada_en: datetime
 }
 
-' ===== Relaciones (negocio) =====
+' ============================================================
+' ===== NUEVO: Entidad Reporte =====
+' ============================================================
+class ReporteTareas {
+  +id_reporte: str
+  +creado_en: datetime
+  +filtro: FiltroReporteTareas
+  +estadisticas: EstadisticasTareas
+}
+
+' ============================================================
+' ===== Relaciones (negocio) existentes =====
+' ============================================================
 Solicitante "1" o-- "0..*" Documento : posee
 Solicitante "1" o-- "0..*" SolicitudMigratoria : crea
 
@@ -81,15 +114,22 @@ SolicitudMigratoria "1" o-- "0..*" Tarea : genera
 SolicitudMigratoria "1" o-- "0..*" Notificacion : notifica
 
 Tarea "*" --> "1" Asesor : asignada_a
-
-' (Opcional) La solicitud referencia docs del solicitante (no los posee)
 SolicitudMigratoria "*" ..> Documento : referencia
 
+' ============================================================
+' ===== NUEVAS relaciones para reportes =====
+' ============================================================
+Asesor "1" o-- "0..*" ReporteTareas : genera
+ReporteTareas --> FiltroReporteTareas : filtro
+ReporteTareas --> EstadisticasTareas : estadisticas
+ReporteTareas ..> Tarea : resume
+
+' ============================================================
 ' ===== Enums =====
+' ============================================================
 enum RolUsuario {
   ASESOR
-  ADMIN
-  OPERADOR
+  SUPERVISOR
 }
 
 enum EstadoSolicitud {
@@ -159,6 +199,8 @@ enum TipoNotificacion {
   DOC_FALTANTE
   CITA_PROXIMA
   ASIGNACION_TAREA
+  ' opcional para valor agregado:
+  REPORTE_LISTO
 }
 
 ' ===== Unir enums con las clases que los "tienen" =====
