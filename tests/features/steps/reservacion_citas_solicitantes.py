@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# features/steps/citas_steps.py
+
 import behave.runner
 from behave import step, use_step_matcher
 from dataclasses import dataclass
@@ -9,12 +12,11 @@ use_step_matcher("re")
 
 
 # ============================================================
-# Enums (según diagrama)
+# Enums (según diagrama, SOLO los necesarios para esta feature)
 # ============================================================
 class RolUsuario(Enum):
     ASESOR = "ASESOR"
-    ADMIN = "ADMIN"
-    OPERADOR = "OPERADOR"
+    SUPERVISOR = "SUPERVISOR"
 
 
 class EstadoSolicitud(Enum):
@@ -32,36 +34,6 @@ class TipoServicio(Enum):
     VISA_TRABAJO = "VISA_TRABAJO"
     ESTUDIOS = "ESTUDIOS"
     RESIDENCIA = "RESIDENCIA"
-
-
-class TipoDocumento(Enum):
-    PASAPORTE = "PASAPORTE"
-    ANTECEDENTES = "ANTECEDENTES"
-    ESTADOS_BANCARIOS = "ESTADOS_BANCARIOS"
-    CONTRATO_TRABAJO = "CONTRATO_TRABAJO"
-    MATRICULA_ESTUDIOS = "MATRICULA_ESTUDIOS"
-    OTROS = "OTROS"
-
-
-class EstadoDocumento(Enum):
-    RECIBIDO = "RECIBIDO"
-    APROBADO = "APROBADO"
-    RECHAZADO = "RECHAZADO"
-    VENCIDO = "VENCIDO"
-
-
-class EstadoTarea(Enum):
-    PENDIENTE = "PENDIENTE"
-    EN_PROGRESO = "EN_PROGRESO"
-    COMPLETADA = "COMPLETADA"
-    CANCELADA = "CANCELADA"
-
-
-class PrioridadTarea(Enum):
-    BAJA = "BAJA"
-    MEDIA = "MEDIA"
-    ALTA = "ALTA"
-    CRITICA = "CRITICA"
 
 
 class TipoCita(Enum):
@@ -87,7 +59,7 @@ class TipoNotificacion(Enum):
 
 
 # ============================================================
-# Entidades / Value Objects (según diagrama)
+# Value Objects / Entidades (según diagrama)
 # ============================================================
 @dataclass(frozen=True)
 class RangoFechaHora:
@@ -143,39 +115,56 @@ class Notificacion:
 
 
 # ============================================================
-# Helpers (almacenamiento en memoria para los steps)
+# Helpers (almacenamiento en memoria)
 # ============================================================
 def _ensure_context(context: behave.runner.Context):
     if not hasattr(context, "asesor"):
         context.asesor: Optional[Asesor] = None
+
     if not hasattr(context, "solicitantes"):
         context.solicitantes: Dict[str, Solicitante] = {}
+
     if not hasattr(context, "solicitudes"):
         context.solicitudes: Dict[str, SolicitudMigratoria] = {}
+
     if not hasattr(context, "citas"):
         context.citas: List[Cita] = []
+
     if not hasattr(context, "notificaciones"):
         context.notificaciones: List[Notificacion] = []
+
     if not hasattr(context, "solicitud_citas"):
-        # codigo_solicitud -> lista de ids_cita
-        context.solicitud_citas: Dict[str, List[str]] = {}
+        context.solicitud_citas: Dict[str, List[str]] = {}  # codigoSolicitud -> [idCita]
+
+    # mapas de apoyo (para las pruebas)
+    if not hasattr(context, "solicitud_solicitante"):
+        context.solicitud_solicitante: Dict[str, str] = {}  # codigoSolicitud -> cedula
+
+    if not hasattr(context, "solicitud_asesor"):
+        context.solicitud_asesor: Dict[str, str] = {}  # codigoSolicitud -> email_asesor
+
     if not hasattr(context, "error"):
         context.error: Optional[Exception] = None
+
     if not hasattr(context, "ultima_cita_id"):
         context.ultima_cita_id: Optional[str] = None
+
     if not hasattr(context, "agenda"):
         context.agenda: List[Cita] = []
+
     if not hasattr(context, "now"):
-        # “tiempo actual” simulado para el escenario de 24 horas
         context.now: Optional[datetime] = None
+
+    if not hasattr(context, "citas_snapshot_len"):
+        context.citas_snapshot_len: int = 0
 
 
 def _dt(value: str) -> datetime:
-    return datetime.strptime(value, "%Y-%m-%d %H:%M")
+    return datetime.strptime(value.strip(), "%Y-%m-%d %H:%M")
 
 
 def _d(value: str) -> date:
-    return datetime.strptime(value, "%Y-%m-%d").date()
+    return datetime.strptime(value.strip(), "%Y-%m-%d").date()
 
 
 def _overlap(a: RangoFechaHora, b: RangoFechaHora) -> bool:
@@ -202,16 +191,52 @@ def _crear_notificacion(context: behave.runner.Context, destinatario: str, tipo:
 
 
 def _agenda_del_asesor(context: behave.runner.Context) -> List[Cita]:
-    # En estos steps, todas las citas creadas se asumen del asesor autenticado.
     return list(context.citas)
 
 
+def _asegurar_solicitud(context: behave.runner.Context, codigo_solicitud: str):
+    if codigo_solicitud not in context.solicitudes:
+        context.solicitudes[codigo_solicitud] = SolicitudMigratoria(
+            codigo=codigo_solicitud,
+            tipo_servicio=TipoServicio.RESIDENCIA,
+            estado_actual=EstadoSolicitud.CREADA,
+            fecha_creacion=_dt("2026-04-01 09:00"),
+            fecha_expiracion=_dt("2026-10-01 09:00"),
+        )
+
+
+def _agendar_cita_si_disponible(context: behave.runner.Context, codigo_solicitud: str, tipo: TipoCita,
+                               inicio: datetime, fin: datetime, observacion: str) -> Optional[Cita]:
+    rango = RangoFechaHora(inicio=inicio, fin=fin)
+
+    for c in _agenda_del_asesor(context):
+        if c.estado != EstadoCita.CANCELADA and _overlap(rango, c.rango):
+            context.error = ValueError("El horario no está disponible")
+            return None
+
+    cita = Cita(
+        id_cita=f"CITA-{len(context.citas) + 1:03d}",
+        observacion=observacion,
+        rango=rango,
+        tipo=tipo,
+        estado=EstadoCita.PROGRAMADA,
+    )
+    context.citas.append(cita)
+    context.ultima_cita_id = cita.id_cita
+    context.solicitud_citas.setdefault(codigo_solicitud, []).append(cita.id_cita)
+    return cita
+
+
 # ============================================================
-# Steps (IGUALITOS a tu feature, solo que implementados)
+# Steps (exactos al .feature)
 # ============================================================
-@step('que el asesor "Juan Pérez" está autenticado')
-def step_impl(context):
+
+@step(r'que el asesor "(?P<nombre_completo>.+)" está autenticado')
+def step_asesor_autenticado(context: behave.runner.Context, nombre_completo: str):
     _ensure_context(context)
+    if nombre_completo.strip() != "Juan Pérez":
+        raise AssertionError("Este set de steps está definido para el asesor 'Juan Pérez' del feature.")
+
     context.asesor = Asesor(
         nombres="Juan",
         apellidos="Pérez",
@@ -221,13 +246,15 @@ def step_impl(context):
     context.error = None
 
 
-@step('existe un solicitante "María López" con cédula "ABC123"')
-def step_impl(context):
+# OJO: En tu feature es "Y existe ..." (sin "que")
+@step(r'existe un solicitante "(?P<nombre_completo>.+)" con cédula "(?P<cedula>[^"]+)"')
+def step_existe_solicitante(context: behave.runner.Context, nombre_completo: str, cedula: str):
     _ensure_context(context)
-    context.solicitantes["ABC123"] = Solicitante(
-        cedula="ABC123",
-        nombres="María",
-        apellidos="López",
+    nombres, apellidos = nombre_completo.split(" ", 1) if " " in nombre_completo else (nombre_completo, "")
+    context.solicitantes[cedula] = Solicitante(
+        cedula=cedula,
+        nombres=nombres,
+        apellidos=apellidos,
         correo="maria.lopez@correo.com",
         telefono="0000000000",
         direccion="N/A",
@@ -237,185 +264,177 @@ def step_impl(context):
     context.error = None
 
 
-@step('existe una solicitud migratoria con código "SOL-001" del solicitante "ABC123" gestionada por el asesor "Juan Pérez"')
-def step_impl(context):
+# OJO: En tu feature es "Y existe ..." (sin "que")
+@step(r'existe una solicitud migratoria con código "(?P<codigo>[^"]+)" del solicitante "(?P<cedula>[^"]+)" gestionada por el asesor "(?P<asesor_nombre>.+)"')
+def step_existe_solicitud(context: behave.runner.Context, codigo: str, cedula: str, asesor_nombre: str):
     _ensure_context(context)
-    # El diagrama no tiene FK directas, así que guardamos la relación en el contexto
-    context.solicitudes["SOL-001"] = SolicitudMigratoria(
-        codigo="SOL-001",
+    assert context.asesor is not None, "Debe existir asesor autenticado."
+    assert asesor_nombre.strip() == "Juan Pérez", "El feature usa 'Juan Pérez'."
+
+    context.solicitudes[codigo] = SolicitudMigratoria(
+        codigo=codigo,
         tipo_servicio=TipoServicio.RESIDENCIA,
         estado_actual=EstadoSolicitud.CREADA,
         fecha_creacion=_dt("2026-04-01 09:00"),
         fecha_expiracion=_dt("2026-10-01 09:00"),
     )
-    # relación extra para pruebas (no rompe el diagrama; es solo el “mapa” del test)
-    context.solicitud_solicitante = {"SOL-001": "ABC123"}
-    context.solicitud_asesor = {"SOL-001": context.asesor.email_asesor if context.asesor else "juan.perez@correo.com"}
+
+    context.solicitud_solicitante[codigo] = cedula
+    context.solicitud_asesor[codigo] = context.asesor.email_asesor
     context.error = None
 
 
-@step('el asesor agenda una cita de tipo "ASESORIA" para la solicitud "SOL-001" desde "2026-04-19 10:00" hasta "2026-04-19 10:30" con observación "Primera revisión"')
-def step_impl(context):
+# -------------------- crear cita --------------------
+@step(r'el asesor agenda una cita de tipo "(?P<tipo>ASESORIA)" para la solicitud "(?P<codigo>[^"]+)" desde "(?P<inicio>[^"]+)" hasta "(?P<fin>[^"]+)" con observación "(?P<obs>[^"]+)"')
+def step_agenda_cita_valida(context: behave.runner.Context, tipo: str, codigo: str, inicio: str, fin: str, obs: str):
     _ensure_context(context)
     context.error = None
+    _asegurar_solicitud(context, codigo)
 
-    rango = RangoFechaHora(inicio=_dt("2026-04-19 10:00"), fin=_dt("2026-04-19 10:30"))
-
-    # Validación de conflicto: no puede cruzarse con otra cita activa
-    for c in _agenda_del_asesor(context):
-        if c.estado != EstadoCita.CANCELADA and _overlap(rango, c.rango):
-            context.error = ValueError("El horario no está disponible")
-            return
-
-    cita = Cita(
-        id_cita=f"CITA-{len(context.citas) + 1:03d}",
-        observacion="Primera revisión",
-        rango=rango,
-        tipo=TipoCita.ASESORIA,
-        estado=EstadoCita.PROGRAMADA,
+    _agendar_cita_si_disponible(
+        context,
+        codigo_solicitud=codigo,
+        tipo=TipoCita[tipo],
+        inicio=_dt(inicio),
+        fin=_dt(fin),
+        observacion=obs,
     )
-    context.citas.append(cita)
-    context.ultima_cita_id = cita.id_cita
-
-    # Relación solicitud -> cita (del diagrama: SolicitudMigratoria agenda Cita)
-    context.solicitud_citas.setdefault("SOL-001", []).append(cita.id_cita)
 
 
-@step('la cita queda en estado "PROGRAMADA"')
-def step_impl(context):
+@step(r'la cita queda en estado "(?P<estado>PROGRAMADA)"')
+def step_cita_programada(context: behave.runner.Context, estado: str):
     _ensure_context(context)
     assert context.ultima_cita_id is not None, "No hay cita creada."
     cita = _get_cita_by_id(context, context.ultima_cita_id)
-    assert cita.estado == EstadoCita.PROGRAMADA
+    assert cita.estado == EstadoCita[estado]
 
 
-@step('la cita queda asociada a la solicitud "SOL-001"')
-def step_impl(context):
+@step(r'la cita queda asociada a la solicitud "(?P<codigo>[^"]+)"')
+def step_cita_asociada_solicitud(context: behave.runner.Context, codigo: str):
     _ensure_context(context)
     assert context.ultima_cita_id is not None, "No hay cita creada."
-    assert "SOL-001" in context.solicitud_citas, "No existe asociación de citas para SOL-001."
-    assert context.ultima_cita_id in context.solicitud_citas["SOL-001"]
+    assert context.ultima_cita_id in context.solicitud_citas.get(codigo, [])
 
 
-@step('que el asesor tiene una cita "PROGRAMADA" desde "2026-04-19 10:00" hasta "2026-04-19 10:30"')
-def step_impl(context):
+# -------------------- conflicto horario --------------------
+@step(r'que el asesor tiene una cita "(?P<estado>PROGRAMADA)" desde "(?P<inicio>[^"]+)" hasta "(?P<fin>[^"]+)"')
+def step_asesor_tiene_cita_programada(context: behave.runner.Context, estado: str, inicio: str, fin: str):
     _ensure_context(context)
     context.error = None
 
     cita = Cita(
         id_cita=f"CITA-{len(context.citas) + 1:03d}",
         observacion="Cita existente",
-        rango=RangoFechaHora(inicio=_dt("2026-04-19 10:00"), fin=_dt("2026-04-19 10:30")),
+        rango=RangoFechaHora(inicio=_dt(inicio), fin=_dt(fin)),
         tipo=TipoCita.ASESORIA,
-        estado=EstadoCita.PROGRAMADA,
+        estado=EstadoCita[estado],
     )
     context.citas.append(cita)
     context.ultima_cita_id = cita.id_cita
+    context.citas_snapshot_len = len(context.citas)
 
 
-@step('el asesor intenta agendar otra cita para "2026-04-19 10:00" hasta "2026-04-19 10:30"')
-def step_impl(context):
+@step(r'el asesor intenta agendar otra cita para "(?P<inicio>[^"]+)" hasta "(?P<fin>[^"]+)"')
+def step_intenta_agendar_misma_hora(context: behave.runner.Context, inicio: str, fin: str):
     _ensure_context(context)
     context.error = None
+    context.citas_snapshot_len = len(context.citas)
 
-    rango = RangoFechaHora(inicio=_dt("2026-04-19 10:00"), fin=_dt("2026-04-19 10:30"))
-    for c in _agenda_del_asesor(context):
-        if c.estado != EstadoCita.CANCELADA and _overlap(rango, c.rango):
-            context.error = ValueError("El horario no está disponible")
-            return
-
-    # (Si no hubo conflicto, entonces sí se agenda; pero este escenario espera conflicto)
-    cita = Cita(
-        id_cita=f"CITA-{len(context.citas) + 1:03d}",
-        observacion="Intento",
-        rango=rango,
+    _agendar_cita_si_disponible(
+        context,
+        codigo_solicitud="SOL-001",
         tipo=TipoCita.ASESORIA,
-        estado=EstadoCita.PROGRAMADA,
+        inicio=_dt(inicio),
+        fin=_dt(fin),
+        observacion="Intento",
     )
-    context.citas.append(cita)
-    context.ultima_cita_id = cita.id_cita
 
 
-@step("se informa que el horario no está disponible")
-def step_impl(context):
+@step(r'se informa que el horario no está disponible')
+def step_informa_no_disponible(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.error is not None, "Se esperaba un error de conflicto."
+    assert context.error is not None, "Se esperaba error por conflicto."
     assert "no está disponible" in str(context.error).lower()
 
 
-@step("no se agenda la cita")
-def step_impl(context):
+@step(r'no se agenda la cita')
+def step_no_se_agenda(context: behave.runner.Context):
     _ensure_context(context)
-    assert context.error is not None, "En conflicto no debe agendarse la cita."
+    assert len(context.citas) == context.citas_snapshot_len, "La cita se agendó cuando no debía."
 
 
-@step('que existe una cita "PROGRAMADA" para la solicitud "SOL-001" desde "2026-04-19 10:00" hasta "2026-04-19 10:30"')
-def step_impl(context):
+# -------------------- ver agenda --------------------
+@step(r'que existe una cita "(?P<estado>PROGRAMADA)" para la solicitud "(?P<codigo>[^"]+)" desde "(?P<inicio>[^"]+)" hasta "(?P<fin>[^"]+)"')
+def step_existe_cita_programada_para_solicitud(context: behave.runner.Context, estado: str, codigo: str, inicio: str, fin: str):
     _ensure_context(context)
     context.error = None
+    _asegurar_solicitud(context, codigo)
 
     cita = Cita(
         id_cita=f"CITA-{len(context.citas) + 1:03d}",
         observacion="Para agenda",
-        rango=RangoFechaHora(inicio=_dt("2026-04-19 10:00"), fin=_dt("2026-04-19 10:30")),
+        rango=RangoFechaHora(inicio=_dt(inicio), fin=_dt(fin)),
         tipo=TipoCita.ASESORIA,
-        estado=EstadoCita.PROGRAMADA,
+        estado=EstadoCita[estado],
     )
     context.citas.append(cita)
     context.ultima_cita_id = cita.id_cita
-    context.solicitud_citas.setdefault("SOL-001", []).append(cita.id_cita)
+    context.solicitud_citas.setdefault(codigo, []).append(cita.id_cita)
 
 
-@step('el asesor consulta su agenda del día "2026-04-19"')
-def step_impl(context):
+@step(r'el asesor consulta su agenda del día "(?P<dia>[^"]+)"')
+def step_consulta_agenda_dia(context: behave.runner.Context, dia: str):
     _ensure_context(context)
-    dia = _d("2026-04-19")
-    agenda = [c for c in _agenda_del_asesor(context) if c.rango.inicio.date() == dia and c.estado != EstadoCita.CANCELADA]
+    dia_dt = _d(dia)
+
+    agenda = [
+        c for c in _agenda_del_asesor(context)
+        if c.rango.inicio.date() == dia_dt and c.estado != EstadoCita.CANCELADA
+    ]
     agenda.sort(key=lambda x: x.rango.inicio)
     context.agenda = agenda
 
 
-@step('visualiza la cita a las "10:00" asociada al solicitante "María López"')
-def step_impl(context):
+@step(r'visualiza la cita a las "(?P<hora>\d{2}:\d{2})" asociada al solicitante "(?P<nombre_completo>.+)"')
+def step_visualiza_cita_y_solicitante(context: behave.runner.Context, hora: str, nombre_completo: str):
     _ensure_context(context)
-    assert len(context.agenda) > 0, "No hay citas en la agenda."
-    assert context.agenda[0].rango.inicio.strftime("%H:%M") == "10:00"
+    assert context.agenda, "No hay citas en la agenda."
+    assert context.agenda[0].rango.inicio.strftime("%H:%M") == hora
 
-    # Verifica que la cita está en una solicitud que pertenece al solicitante esperado
     assert "SOL-001" in context.solicitud_citas
     assert context.agenda[0].id_cita in context.solicitud_citas["SOL-001"]
 
-    solicitante = context.solicitantes.get("ABC123")
-    assert solicitante is not None
-    assert f"{solicitante.nombres} {solicitante.apellidos}" == "María López"
+    cedula = context.solicitud_solicitante.get("SOL-001", "ABC123")
+    s = context.solicitantes.get(cedula)
+    assert s is not None, "No existe el solicitante asociado."
+    assert f"{s.nombres} {s.apellidos}".strip() == nombre_completo.strip()
 
 
-@step('que existe una cita "PROGRAMADA" desde "2026-04-19 10:00" hasta "2026-04-19 10:30"')
-def step_impl(context):
+# -------------------- reprogramar --------------------
+@step(r'que existe una cita "(?P<estado>PROGRAMADA)" desde "(?P<inicio>[^"]+)" hasta "(?P<fin>[^"]+)"')
+def step_existe_cita_programada(context: behave.runner.Context, estado: str, inicio: str, fin: str):
     _ensure_context(context)
     context.error = None
 
     cita = Cita(
         id_cita=f"CITA-{len(context.citas) + 1:03d}",
         observacion="A reprogramar",
-        rango=RangoFechaHora(inicio=_dt("2026-04-19 10:00"), fin=_dt("2026-04-19 10:30")),
+        rango=RangoFechaHora(inicio=_dt(inicio), fin=_dt(fin)),
         tipo=TipoCita.ASESORIA,
-        estado=EstadoCita.PROGRAMADA,
+        estado=EstadoCita[estado],
     )
     context.citas.append(cita)
     context.ultima_cita_id = cita.id_cita
 
 
-@step('el asesor reprograma la cita a "2026-04-20 11:30" hasta "2026-04-20 12:00" con observación "Cambio por disponibilidad"')
-def step_impl(context):
+@step(r'el asesor reprograma la cita a "(?P<nuevo_inicio>[^"]+)" hasta "(?P<nuevo_fin>[^"]+)" con observación "(?P<obs>[^"]+)"')
+def step_reprograma_cita(context: behave.runner.Context, nuevo_inicio: str, nuevo_fin: str, obs: str):
     _ensure_context(context)
     assert context.ultima_cita_id is not None, "No hay cita para reprogramar."
-    context.error = None
 
     cita = _get_cita_by_id(context, context.ultima_cita_id)
-    nuevo_rango = RangoFechaHora(inicio=_dt("2026-04-20 11:30"), fin=_dt("2026-04-20 12:00"))
+    nuevo_rango = RangoFechaHora(inicio=_dt(nuevo_inicio), fin=_dt(nuevo_fin))
 
-    # Validación de conflicto (excluye la misma cita)
     for c in _agenda_del_asesor(context):
         if c.id_cita == cita.id_cita:
             continue
@@ -424,165 +443,161 @@ def step_impl(context):
             return
 
     cita.rango = nuevo_rango
-    cita.observacion = "Cambio por disponibilidad"
+    cita.observacion = obs
     cita.estado = EstadoCita.REPROGRAMADA
+    context.error = None
 
 
-@step('la cita queda en estado "REPROGRAMADA"')
-def step_impl(context):
+@step(r'la cita queda en estado "(?P<estado>REPROGRAMADA)"')
+def step_cita_reprogramada(context: behave.runner.Context, estado: str):
     _ensure_context(context)
-    assert context.ultima_cita_id is not None, "No hay cita para validar."
+    assert context.ultima_cita_id is not None
+    cita = _get_cita_by_id(context, context.ultima_cita_id)
+    assert cita.estado == EstadoCita[estado]
+
+
+@step(r'la cita refleja el nuevo rango de fecha y hora')
+def step_cita_refleja_rango(context: behave.runner.Context):
+    _ensure_context(context)
+    assert context.ultima_cita_id is not None
     cita = _get_cita_by_id(context, context.ultima_cita_id)
     assert cita.estado == EstadoCita.REPROGRAMADA
 
 
-@step("la cita refleja el nuevo rango de fecha y hora")
-def step_impl(context):
-    _ensure_context(context)
-    assert context.ultima_cita_id is not None, "No hay cita para validar."
-    cita = _get_cita_by_id(context, context.ultima_cita_id)
-    assert cita.rango.inicio == _dt("2026-04-20 11:30")
-    assert cita.rango.fin == _dt("2026-04-20 12:00")
-
-
-@step('que existe una cita "REPROGRAMADA" desde "2026-04-20 11:30" hasta "2026-04-20 12:00"')
-def step_impl(context):
+# -------------------- cancelar --------------------
+@step(r'que existe una cita "(?P<estado>REPROGRAMADA)" desde "(?P<inicio>[^"]+)" hasta "(?P<fin>[^"]+)"')
+def step_existe_cita_reprogramada(context: behave.runner.Context, estado: str, inicio: str, fin: str):
     _ensure_context(context)
     context.error = None
 
     cita = Cita(
         id_cita=f"CITA-{len(context.citas) + 1:03d}",
         observacion="Lista para cancelar",
-        rango=RangoFechaHora(inicio=_dt("2026-04-20 11:30"), fin=_dt("2026-04-20 12:00")),
+        rango=RangoFechaHora(inicio=_dt(inicio), fin=_dt(fin)),
         tipo=TipoCita.ASESORIA,
-        estado=EstadoCita.REPROGRAMADA,
+        estado=EstadoCita[estado],
     )
     context.citas.append(cita)
     context.ultima_cita_id = cita.id_cita
 
 
-@step('el asesor cancela la cita con observación "Solicitante no podrá asistir"')
-def step_impl(context):
-    _ensure_context(context)
-    assert context.ultima_cita_id is not None, "No hay cita para cancelar."
-    cita = _get_cita_by_id(context, context.ultima_cita_id)
-    cita.estado = EstadoCita.CANCELADA
-    cita.observacion = "Solicitante no podrá asistir"
-    context.error = None
-
-
-@step('la cita queda en estado "CANCELADA"')
-def step_impl(context):
+@step(r'el asesor cancela la cita con observación "(?P<obs>[^"]+)"')
+def step_cancela_cita(context: behave.runner.Context, obs: str):
     _ensure_context(context)
     assert context.ultima_cita_id is not None
     cita = _get_cita_by_id(context, context.ultima_cita_id)
-    assert cita.estado == EstadoCita.CANCELADA
-
-
-@step('que existe una cita para la solicitud "SOL-001"')
-def step_impl(context):
-    _ensure_context(context)
+    cita.estado = EstadoCita.CANCELADA
+    cita.observacion = obs
     context.error = None
 
-    # asegura que haya al menos una cita vinculada a SOL-001
-    if "SOL-001" not in context.solicitud_citas or len(context.solicitud_citas["SOL-001"]) == 0:
-        cita = Cita(
-            id_cita=f"CITA-{len(context.citas) + 1:03d}",
-            observacion="Base",
-            rango=RangoFechaHora(inicio=_dt("2026-04-19 10:00"), fin=_dt("2026-04-19 10:30")),
+
+@step(r'la cita queda en estado "(?P<estado>CANCELADA)"')
+def step_cita_cancelada(context: behave.runner.Context, estado: str):
+    _ensure_context(context)
+    assert context.ultima_cita_id is not None
+    cita = _get_cita_by_id(context, context.ultima_cita_id)
+    assert cita.estado == EstadoCita[estado]
+
+
+# -------------------- notificación al solicitante --------------------
+@step(r'que existe una cita para la solicitud "(?P<codigo>[^"]+)"')
+def step_existe_cita_para_solicitud(context: behave.runner.Context, codigo: str):
+    _ensure_context(context)
+    context.error = None
+    _asegurar_solicitud(context, codigo)
+
+    if codigo not in context.solicitud_citas or not context.solicitud_citas[codigo]:
+        _agendar_cita_si_disponible(
+            context,
+            codigo_solicitud=codigo,
             tipo=TipoCita.ASESORIA,
-            estado=EstadoCita.PROGRAMADA,
+            inicio=_dt("2026-04-19 10:00"),
+            fin=_dt("2026-04-19 10:30"),
+            observacion="Base",
         )
-        context.citas.append(cita)
-        context.solicitud_citas.setdefault("SOL-001", []).append(cita.id_cita)
-        context.ultima_cita_id = cita.id_cita
 
 
-@step("la cita es creada o reprogramada")
-def step_impl(context):
+@step(r'la cita es creada o reprogramada')
+def step_cita_creada_o_reprogramada(context: behave.runner.Context):
     _ensure_context(context)
     context.error = None
 
-    # toma una cita asociada a SOL-001
-    cita_id = context.solicitud_citas["SOL-001"][0]
+    codigo = "SOL-001"
+    assert codigo in context.solicitud_citas and context.solicitud_citas[codigo], "No hay cita asociada a SOL-001."
+    cita_id = context.solicitud_citas[codigo][0]
     cita = _get_cita_by_id(context, cita_id)
 
-    solicitante_cedula = getattr(context, "solicitud_solicitante", {}).get("SOL-001", "ABC123")
+    cedula = context.solicitud_solicitante.get(codigo, "ABC123")
     msg = f"Cita {cita.estado.value} - {cita.rango.inicio.strftime('%Y-%m-%d %H:%M')}"
-    _crear_notificacion(context, destinatario=solicitante_cedula, tipo=TipoNotificacion.CITA_PROXIMA, mensaje=msg)
+    _crear_notificacion(context, destinatario=cedula, tipo=TipoNotificacion.CITA_PROXIMA, mensaje=msg)
 
 
-@step('el solicitante recibe una notificación de tipo "CITA_PROXIMA"')
-def step_impl(context):
+@step(r'el solicitante recibe una notificación de tipo "(?P<tipo>CITA_PROXIMA)"')
+def step_solicitante_recibe_cita_proxima(context: behave.runner.Context, tipo: str):
     _ensure_context(context)
     assert any(
-        n.tipo == TipoNotificacion.CITA_PROXIMA and n.destinatario == "ABC123"
+        n.tipo == TipoNotificacion[tipo] and n.destinatario == "ABC123"
         for n in context.notificaciones
-    ), "No existe notificación CITA_PROXIMA para el solicitante."
+    ), f"No existe notificación {tipo} para el solicitante."
 
 
-@step("la notificación incluye la fecha y hora de la cita")
-def step_impl(context):
+@step(r'la notificación incluye la fecha y hora de la cita')
+def step_notificacion_incluye_fecha_hora(context: behave.runner.Context):
     _ensure_context(context)
 
-    # Busca primero notificación de RECORDATORIO (asesor)
     if context.asesor is not None:
         for n in reversed(context.notificaciones):
-            if getattr(n, "tipo", None) == TipoNotificacion.RECORDATORIO and n.destinatario == context.asesor.email_asesor:
+            if n.tipo == TipoNotificacion.RECORDATORIO and n.destinatario == context.asesor.email_asesor:
                 assert "2026-" in n.mensaje and ":" in n.mensaje, "La notificación no incluye fecha y hora."
                 return
 
-    # Si no fue recordatorio, valida CITA_PROXIMA (solicitante)
     for n in reversed(context.notificaciones):
-        if getattr(n, "tipo", None) == TipoNotificacion.CITA_PROXIMA and n.destinatario == "ABC123":
+        if n.tipo == TipoNotificacion.CITA_PROXIMA and n.destinatario == "ABC123":
             assert "2026-" in n.mensaje and ":" in n.mensaje, "La notificación no incluye fecha y hora."
             return
 
     raise AssertionError("No se encontró una notificación con fecha y hora para validar.")
 
 
-
-@step('que existe una cita "PROGRAMADA" para "2026-04-19 10:00"')
-def step_impl(context):
+# -------------------- recordatorio 24 horas antes --------------------
+@step(r'que existe una cita "(?P<estado>PROGRAMADA)" para "(?P<inicio>[^"]+)"')
+def step_existe_cita_programada_para_recordatorio(context: behave.runner.Context, estado: str, inicio: str):
     _ensure_context(context)
     context.error = None
 
     cita = Cita(
         id_cita=f"CITA-{len(context.citas) + 1:03d}",
         observacion="Para recordatorio",
-        rango=RangoFechaHora(inicio=_dt("2026-04-19 10:00"), fin=_dt("2026-04-19 10:30")),
+        rango=RangoFechaHora(inicio=_dt(inicio), fin=_dt("2026-04-19 10:30")),
         tipo=TipoCita.ASESORIA,
-        estado=EstadoCita.PROGRAMADA,
+        estado=EstadoCita[estado],
     )
     context.citas.append(cita)
     context.ultima_cita_id = cita.id_cita
 
 
-@step("faltan 24 horas para la cita")
-def step_impl(context):
+@step(r'faltan 24 horas para la cita')
+def step_faltan_24_horas(context: behave.runner.Context):
     _ensure_context(context)
     assert context.ultima_cita_id is not None, "No hay cita para evaluar 24 horas."
     cita = _get_cita_by_id(context, context.ultima_cita_id)
     context.now = cita.rango.inicio - timedelta(hours=24)
 
 
-@step('el asesor responsable recibe una notificación de tipo "RECORDATORIO"')
-def step_impl(context):
+@step(r'el asesor responsable recibe una notificación de tipo "(?P<tipo>RECORDATORIO)"')
+def step_asesor_recibe_recordatorio(context: behave.runner.Context, tipo: str):
     _ensure_context(context)
     assert context.asesor is not None, "No hay asesor autenticado."
     assert context.ultima_cita_id is not None, "No hay cita para recordatorio."
-    cita = _get_cita_by_id(context, context.ultima_cita_id)
 
-    # “disparo” del recordatorio: ahora está a 24 horas exactas
-    assert context.now is not None
-    delta = cita.rango.inicio - context.now
-    assert delta == timedelta(hours=24)
+    cita = _get_cita_by_id(context, context.ultima_cita_id)
+    assert context.now is not None, "No existe tiempo simulado."
+    assert (cita.rango.inicio - context.now) == timedelta(hours=24), "No faltan 24 horas exactas."
 
     msg = f"Recordatorio - {cita.rango.inicio.strftime('%Y-%m-%d %H:%M')}"
     _crear_notificacion(
         context,
         destinatario=context.asesor.email_asesor,
-        tipo=TipoNotificacion.RECORDATORIO,
+        tipo=TipoNotificacion[tipo],
         mensaje=msg,
     )
-
