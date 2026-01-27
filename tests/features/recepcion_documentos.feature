@@ -3,28 +3,44 @@
 
 Característica: Recepción de documentos
   Como asesor migratorio
-  Quiero gestionar los documentos de los migrantes
-  Para validar que cumplan con los requisitos del proceso de visa
+  Quiero gestionar los documentos de los solicitantes
+  Para garantizar que cumplan con los requisitos del proceso de visa
 
   Antecedentes:
-    Dado que existe un migrante registrado con un proceso de visa activo
+    Dado que existe un solicitante registrado con un proceso de visa activo
+
 
   @criterio1
-  Escenario: Registrar documentos del migrante en un proceso de visa
-    Dado que el migrante entrega su carpeta con los documentos necesarios
-    Cuando el asesor  revisa la carpeta con los documentos
-    Entonces  registra los documentos
-    Y se habilita el perfil del migrante para el proceso de visa
+  Escenario: Registrar documentos entregados por el solicitante
+    Dado que el solicitante entrega un documento
+    Cuando el asesor registra el documento
+    Entonces el documento queda registrado con estado "RECIBIDO"
+    Y se asocia al expediente del solicitante
 
   @criterio2
-  Escenario: Registro de observaciones por documentos incorrectos
-    Cuando el asesor verifica la correctitud de los documentos
-    Y encuentra inconsistencias en los documentos
-    Entonces el asesor registra las observaciones
-    Y se notifica al migrante los cambios a realizar
+  Escenario: Marcar el estado de un documento como aprobado o rechazado
+    Dado que existe un documento con estado "RECIBIDO"
+    Cuando el asesor revisa el contenido del documento y es correcto
+    Entonces el asesor marca el documento con estado "APROBADO"
 
   @criterio3
-  Escenario: Identificación de documentos faltantes
-    Dado que el migrante no ha entregado todos los documentos requeridos
-    Cuando se valida la completitud de los documentos
-    Entonces el expediente queda marcado como incompleto
+  Escenario: Registrar observación sobre un documento incorrecto
+    Dado que existe un documento con estado "RECIBIDO"
+    Cuando el asesor identifica una inconsistencia en el documento
+    Entonces el asesor registra una observación
+    Y el documento queda marcado con estado "RECHAZADO"
+
+  @criterio4
+  Escenario: Habilitar al solicitante para el proceso de visa
+    Dado que el solicitante tiene todos los documentos requeridos
+    Y todos los documentos están en estado "APROBADO"
+    Cuando el asesor marca al solicitante como habilitado
+    Entonces el solicitante queda habilitado para el proceso de visa
+
+  @criterio5
+  Escenario: Marcar un documento como vencido al superar su fecha de expiración
+    Dado que existe un documento con fecha de expiración
+    Y el documento se encuentra en estado "APROBADO"
+    Cuando la fecha de hoy supera la fecha de expiración del documento
+    Entonces el documento queda marcado con estado "VENCIDO"
+
