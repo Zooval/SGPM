@@ -6,11 +6,10 @@ Ser una plataforma ágil en el flujo administrativo de los procesos de inmigraci
 # Capacidades
 - ### Tramitación de solicitudes de visa
 - Recepción de documentos.
-- Manejo de los datos de los migrantes.
+- Manejo de los datos de los solicitantes.
 - Control de estado y fechas respectivas de las solicitudes.
-- ### Administración de citas migratorias
-- Reservación de citas con migrantes.
-- Reprogramación de citas migratorias.
+- ### Administración de citas solicitantes
+- Reservación de citas con solicitantes.
 - ### Coordinación de tareas a los trabajadores
 - Asignación de tareas.
 - Generación de reporte de estadísticas de tareas.
