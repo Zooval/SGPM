@@ -16,7 +16,9 @@ class Solicitante {
   +apellidos: str
   +correo: str
   +telefono: str
+  +direccion: str
   +fecha_nacimiento: date
+  +habilitado: boolean
 }
 
 class Asesor {
