@@ -3,88 +3,12 @@
 
 import behave.runner
 from behave import step, use_step_matcher
-from dataclasses import dataclass
-from datetime import datetime
-from enum import Enum
-from typing import Dict, List, Optional, Tuple
 
+from typing import Tuple
+from SGPM.domain.entities import *
+from SGPM.domain.enums import *
+from SGPM.domain.value_objects import *
 use_step_matcher("re")
-
-
-# ============================================================
-# Enums (según diagrama)
-# ============================================================
-class RolUsuario(Enum):
-    ASESOR = "ASESOR"
-    SUPERVISOR = "SUPERVISOR"
-
-
-class EstadoTarea(Enum):
-    PENDIENTE = "PENDIENTE"
-    EN_PROGRESO = "EN_PROGRESO"
-    COMPLETADA = "COMPLETADA"
-    CANCELADA = "CANCELADA"
-
-
-class PrioridadTarea(Enum):
-    BAJA = "BAJA"
-    MEDIA = "MEDIA"
-    ALTA = "ALTA"
-    CRITICA = "CRITICA"
-
-
-# ============================================================
-# Entidades (según diagrama)
-# ============================================================
-@dataclass
-class Asesor:
-    nombres: str
-    apellidos: str
-    email_asesor: str
-    rol: RolUsuario
-
-
-@dataclass
-class Tarea:
-    id_tarea: str
-    vencimiento: datetime
-    estado: EstadoTarea
-    prioridad: PrioridadTarea
-    comentario: str
-    titulo: str
-    # UML: Tarea "*" --> "1" Asesor : asignada_a
-    asignada_a: Asesor
-
-
-# ============================================================
-# Value Objects (según diagrama)
-# ============================================================
-@dataclass(frozen=True)
-class FiltroReporteTareas:
-    desde: datetime
-    hasta: datetime
-    asesor_email: Optional[str] = None  # None => global
-
-
-@dataclass(frozen=True)
-class EstadisticasTareas:
-    total_tareas: int
-    por_estado: Dict[EstadoTarea, int]
-    por_prioridad: Dict[PrioridadTarea, int]
-    vencidas_total: int
-    vencidas_por_asesor: Dict[str, int]
-    completadas_por_asesor: Dict[str, int]
-
-
-# ============================================================
-# Entidad Reporte (según diagrama)
-# ============================================================
-@dataclass
-class ReporteTareas:
-    id_reporte: str
-    creado_en: datetime
-    filtro: FiltroReporteTareas
-    estadisticas: EstadisticasTareas
 
 
 # ============================================================

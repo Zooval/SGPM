@@ -4,40 +4,9 @@ import behave.runner
 from behave import step, use_step_matcher
 from dataclasses import dataclass
 from datetime import date
-from enum import Enum
-
+from SGPM.domain.enums import *
+from SGPM.domain.entities import *
 use_step_matcher("re")
-
-
-# ============================================================
-# ENUM (según diagrama; necesario para Asesor)
-# ============================================================
-class RolUsuario(Enum):
-    ASESOR = "ASESOR"
-    SUPERVISOR = "SUPERVISOR"
-
-
-# ============================================================
-# Clases necesarias para la feature (según diagrama)
-# ============================================================
-@dataclass
-class Solicitante:
-    cedula: str
-    nombres: str
-    apellidos: str
-    correo: str
-    telefono: str
-    direccion: str
-    fecha_nacimiento: date
-    habilitado: bool
-
-
-@dataclass
-class Asesor:
-    nombres: str
-    apellidos: str
-    email_asesor: str
-    rol: RolUsuario
 
 
 # ------------------------------------------------------------

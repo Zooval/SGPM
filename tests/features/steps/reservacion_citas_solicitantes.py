@@ -3,115 +3,11 @@
 
 import behave.runner
 from behave import step, use_step_matcher
-from dataclasses import dataclass
 from datetime import datetime, date, timedelta
-from enum import Enum
-from typing import Dict, List, Optional
-
+from SGPM.domain.value_objects  import *
+from SGPM.domain.enums import *
+from SGPM.domain.entities import *
 use_step_matcher("re")
-
-
-# ============================================================
-# Enums (según diagrama, SOLO los necesarios para esta feature)
-# ============================================================
-class RolUsuario(Enum):
-    ASESOR = "ASESOR"
-    SUPERVISOR = "SUPERVISOR"
-
-
-class EstadoSolicitud(Enum):
-    CREADA = "CREADA"
-    EN_REVISION = "EN_REVISION"
-    DOCUMENTOS_PENDIENTES = "DOCUMENTOS_PENDIENTES"
-    ENVIADA = "ENVIADA"
-    APROBADA = "APROBADA"
-    RECHAZADA = "RECHAZADA"
-    CERRADA = "CERRADA"
-
-
-class TipoServicio(Enum):
-    VISA_TURISMO = "VISA_TURISMO"
-    VISA_TRABAJO = "VISA_TRABAJO"
-    ESTUDIOS = "ESTUDIOS"
-    RESIDENCIA = "RESIDENCIA"
-
-
-class TipoCita(Enum):
-    CONSULAR = "CONSULAR"
-    BIOMETRIA = "BIOMETRIA"
-    ENTREGA_DOCUMENTOS = "ENTREGA_DOCUMENTOS"
-    ASESORIA = "ASESORIA"
-
-
-class EstadoCita(Enum):
-    PROGRAMADA = "PROGRAMADA"
-    REPROGRAMADA = "REPROGRAMADA"
-    COMPLETADA = "COMPLETADA"
-    CANCELADA = "CANCELADA"
-    NO_ASISTIO = "NO_ASISTIO"
-
-
-class TipoNotificacion(Enum):
-    RECORDATORIO = "RECORDATORIO"
-    DOC_FALTANTE = "DOC_FALTANTE"
-    CITA_PROXIMA = "CITA_PROXIMA"
-    ASIGNACION_TAREA = "ASIGNACION_TAREA"
-
-
-# ============================================================
-# Value Objects / Entidades (según diagrama)
-# ============================================================
-@dataclass(frozen=True)
-class RangoFechaHora:
-    inicio: datetime
-    fin: datetime
-
-
-@dataclass
-class Solicitante:
-    cedula: str
-    nombres: str
-    apellidos: str
-    correo: str
-    telefono: str
-    direccion: str
-    fecha_nacimiento: date
-    habilitado: bool
-
-
-@dataclass
-class Asesor:
-    nombres: str
-    apellidos: str
-    email_asesor: str
-    rol: RolUsuario
-
-
-@dataclass
-class SolicitudMigratoria:
-    codigo: str
-    tipo_servicio: TipoServicio
-    estado_actual: EstadoSolicitud
-    fecha_creacion: datetime
-    fecha_expiracion: datetime
-
-
-@dataclass
-class Cita:
-    id_cita: str
-    observacion: str
-    rango: RangoFechaHora
-    tipo: TipoCita
-    estado: EstadoCita
-
-
-@dataclass
-class Notificacion:
-    id_notificacion: str
-    destinatario: str
-    tipo: TipoNotificacion
-    mensaje: str
-    creada_en: datetime
 
 
 # ============================================================
