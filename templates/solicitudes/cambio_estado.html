@@ -1,10 +1,190 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
 
-</body>
-</html>
+{% block title %}SGPM | Clientes{% endblock %} 
+{% block page_title %}Solicitudes{% endblock %}
+{% block page_subtitle %}Gestión de solicitudes {% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+        <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+{% endblock %}
+
+{% block page_content %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-title">
+                <h2>Actualización de Estado</h2>
+                <p>Gestione el estado de las solicitudes migratorias</p>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+
+            <!-- Buscar Solicitud -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <div>
+                        <h3>Buscar Solicitud</h3>
+                        <p>Ingrese el número de expediente o cédula del solicitante</p>
+                    </div>
+                </div>
+
+                <div class="registro-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fa-solid fa-hashtag"></i>
+                                Número de Expediente
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="expedienteId"
+                                placeholder="Ej: EXP-202601-JG1234"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="btn-primary" onclick="buscarSolicitud()" style="margin-top: 1.75rem;">
+                                <i class="fa-solid fa-search"></i>
+                                Buscar Solicitud
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estado Actual (oculto inicialmente) -->
+            <div id="estadoActualCard" class="form-card" style="display: none;">
+                <div class="section-header" style="padding: var(--spacing-lg); margin: 0;">
+                    <i class="fa-solid fa-info-circle"></i>
+                    <h4>Información de la Solicitud</h4>
+                </div>
+
+                <div class="registro-form" style="padding-top: 0;">
+                    <!-- Información del Solicitante -->
+                    <div class="profile-section" style="grid-template-columns: 1fr; margin-bottom: var(--spacing-lg);">
+                        <div class="profile-card">
+                            <h5><i class="fa-solid fa-user"></i> Datos del Solicitante</h5>
+                            <div class="profile-info-row">
+                                <span class="label">Nombre Completo</span>
+                                <span class="value" id="nombreCompleto">-</span>
+                            </div>
+                            <div class="profile-info-row">
+                                <span class="label">Cédula</span>
+                                <span class="value" id="cedula">-</span>
+                            </div>
+                            <div class="profile-info-row">
+                                <span class="label">Tipo de Servicio</span>
+                                <span class="value" id="tipoServicio">-</span>
+                            </div>
+                            <div class="profile-info-row">
+                                <span class="label">País Destino</span>
+                                <span class="value" id="paisDestino">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estado Actual -->
+                    <div class="stat-card" style="margin-bottom: var(--spacing-xl); background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border: 2px solid var(--primary-light);">
+                        <div class="stat-icon blue">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h4>Estado Actual</h4>
+                            <div class="value" id="estadoActual">-</div>
+                            <div class="trend">
+                                <i class="fa-solid fa-clock"></i>
+                                Última actualización: <span id="fechaActualizacion">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulario de Cambio de Estado -->
+                    <form id="cambioEstadoForm">
+                        <div class="form-section">
+                            <div class="section-header">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                                <h4>Cambiar Estado</h4>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group full-width">
+                                    <label class="form-label">
+                                        <i class="fa-solid fa-list-check"></i>
+                                        Nuevo Estado
+                                    </label>
+                                    <select class="form-control" id="nuevoEstado" required>
+                                        <option value="">Seleccione el nuevo estado...</option>
+                                    </select>
+                                    <span class="field-help">Solo se muestran las transiciones permitidas desde el estado actual</span>
+                                </div>
+                            </div>
+
+                            <div class="form-row" id="motivoContainer" style="display: none;">
+                                <div class="form-group full-width">
+                                    <label class="form-label">
+                                        <i class="fa-solid fa-comment-dots"></i>
+                                        Motivo de la Transición
+                                    </label>
+                                    <textarea
+                                        class="form-control"
+                                        id="motivo"
+                                        rows="4"
+                                        placeholder="Ingrese el motivo del cambio de estado..."
+                                    ></textarea>
+                                    <span class="field-help" id="motivoHelp">Este campo es obligatorio para este tipo de transición</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Alert de validación -->
+                        <div id="validationAlert" class="error-alert" style="display: none;">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span id="validationMessage"></span>
+                        </div>
+
+                        <!-- Alert de éxito -->
+                        <div id="successAlert" class="success-alert" style="display: none;">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span id="successMessage"></span>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="limpiarFormulario()">
+                                <i class="fa-solid fa-broom"></i>
+                                Limpiar
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fa-solid fa-check"></i>
+                                Actualizar Estado
+                                <span class="arrow">→</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Historial de Estados -->
+            <div id="historialCard" class="form-card" style="display: none;">
+                <div class="section-header" style="padding: var(--spacing-lg); margin: 0;">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <h4>Historial de Estados</h4>
+                </div>
+
+                <div class="registro-form" style="padding-top: 0;">
+                    <div id="historialTimeline" class="timeline-container">
+                        <!-- Se llenará dinámicamente con JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+{% endblock %}

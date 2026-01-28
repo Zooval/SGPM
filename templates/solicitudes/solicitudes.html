@@ -10,11 +10,6 @@
 {% endblock %}
 
 {% block page_content %}
-    <div class="card">
-        <div class="card-content">
-            <h3>Solicitudes</h3>
-        </div>
-    </div>
 
     <main class="main-content">
 
@@ -60,7 +55,7 @@
                         </div>
                     </a>
 
-                    <a href="cambio_estado.html" class="menu-card">
+                    <a href="{% url 'cambio-estado' %}" class="menu-card {% if request.resolver_match.url_name == 'cambio-estado' %}active{% endif %}">
                         <div class="menu-card-icon purple">
                             <i class="fa-solid fa-exchange-alt"></i>
                         </div>
