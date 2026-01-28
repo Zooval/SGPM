@@ -62,8 +62,8 @@
                             </span>
                         </td>
                         <td style="padding: 0.75rem;">
-                            {% if tarea.asignada_a %}
-                                {{ tarea.asignada_a.obtener_nombre_completo }}
+                            {% if tarea.asesor_email %}
+                                {{ tarea.asesor_email }}
                             {% else %}
                                 <span style="color: var(--text-muted);">Sin asignar</span>
                             {% endif %}
@@ -78,6 +78,9 @@
                         <td style="padding: 0.75rem; text-align: center;">
                             <a href="{% url 'tareas_editar' tarea.id_tarea %}" class="btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 0.85rem;">
                                 <i class="fa-solid fa-edit"></i>
+                            </a>
+                            <a href="{% url 'tareas_eliminar' tarea.id_tarea %}" class="btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 0.85rem;">
+                                <i class="fa-solid fa-trash"></i>
                             </a>
                         </td>
                     </tr>

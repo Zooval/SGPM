@@ -214,10 +214,13 @@ class Documento:
 class Cita:
     """Representa una cita según el diagrama"""
 
-    def __init__(self, id_cita: str, observacion: str, rango: RangoFechaHora,
-                 tipo: TipoCita, estado: EstadoCita, solicitud_codigo: str = None,
+    def __init__(self, id_cita: Optional[str] = None, observacion: str = "",
+                 rango: Optional[RangoFechaHora] = None,
+                 tipo: Optional[TipoCita] = None,
+                 estado: EstadoCita = EstadoCita.PROGRAMADA,
+                 solicitud_codigo: Optional[str] = None,
                  # Alias para compatibilidad
-                 idCita: str = None, solicitudCodigo: str = None):
+                 idCita: Optional[str] = None, solicitudCodigo: Optional[str] = None):
         # Soportar ambos formatos
         self.id_cita = id_cita or idCita
         self.idCita = self.id_cita  # Alias para compatibilidad
@@ -257,6 +260,10 @@ class Tarea:
     def cambiar_estado(self, nuevo_estado: EstadoTarea) -> None:
         """Cambia el estado de la tarea con validación de transiciones"""
         from .exceptions import TransicionEstadoTareaNoPermitida
+
+        # No-op: permitir "cambio" al mismo estado sin error
+        if nuevo_estado == self.estado:
+            return
 
         transiciones_validas = {
             EstadoTarea.PENDIENTE: {EstadoTarea.EN_PROGRESO, EstadoTarea.CANCELADA},

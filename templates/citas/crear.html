@@ -20,9 +20,9 @@
                     <option value="">Seleccione una solicitud</option>
                     {% for solicitud in solicitudes %}
                     <option value="{{ solicitud.codigo }}">
-                        {{ solicitud.codigo }} - 
+                      
                         {% if solicitud.solicitante %}{{ solicitud.solicitante.obtener_nombre_completo }}{% else %}Sin solicitante{% endif %}
-                        ({{ solicitud.estado_actual }})
+                        
                     </option>
                     {% endfor %}
                 </select>

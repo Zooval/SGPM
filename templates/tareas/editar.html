@@ -35,6 +35,21 @@
 
             <div class="form-group">
                 <label class="form-label">
+                    <i class="fa-solid fa-user"></i>
+                    Asignar a Asesor
+                </label>
+                <select name="asesor_email" class="form-control">
+                    <option value="">Sin asignar</option>
+                    {% for asesor in asesores %}
+                    <option value="{{ asesor.email }}" {% if tarea.asesor_email == asesor.email %}selected{% endif %}>
+                        {{ asesor.nombre_completo }} ({{ asesor.email }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
                     <i class="fa-solid fa-calendar-times"></i>
                     Fecha de Vencimiento
                 </label>
@@ -82,7 +97,7 @@
                     <i class="fa-solid fa-comment"></i>
                     Comentario
                 </label>
-                <textarea class="form-control" rows="3" readonly style="background: var(--bg-main); cursor: not-allowed;">{{ tarea.comentario|default:"Sin comentarios" }}</textarea>
+                <textarea name="comentario" class="form-control" rows="3">{{ tarea.comentario|default:"" }}</textarea>
             </div>
             {% endif %}
 
@@ -103,8 +118,7 @@
                 <strong>Información de la tarea:</strong>
                 <ul style="margin: 0.5rem 0 0 0; padding-left: 1.5rem; color: var(--text-muted);">
                     <li>ID: {{ tarea.id_tarea }}</li>
-                    <li>Asignada a: {% if tarea.asignada_a %}{{ tarea.asignada_a.obtener_nombre_completo }}{% else %}Sin asignar{% endif %}</li>
-                    <li>Creada: {{ tarea.fecha_creacion|date:"d/m/Y H:i" }}</li>
+                    <li>Asignada a: {% if tarea.asesor_email %}{{ tarea.asesor_email }}{% else %}Sin asignar{% endif %}</li>
                 </ul>
             </div>
 

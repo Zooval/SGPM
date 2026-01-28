@@ -520,6 +520,42 @@ class TareaService:
 
         return self._to_dto(resultado)
 
+    def editar_tarea(
+        self,
+        id_tarea: str,
+        *,
+        titulo: Optional[str] = None,
+        prioridad: Optional[str] = None,
+        estado: Optional[str] = None,
+        vencimiento: Optional[datetime] = None,
+        comentario: Optional[str] = None,
+    ) -> TareaDTO:
+        """
+        Edita una tarea existente (campos opcionales).
+        Nota: No reasigna asesor; para eso usar `asignar_a_asesor`.
+        """
+        tarea = self._repo.obtener_por_id(id_tarea)
+        if tarea is None:
+            raise TareaNoEncontradaError(f"No existe la tarea {id_tarea}")
+
+        if titulo is not None:
+            tarea.titulo = titulo
+
+        if prioridad is not None:
+            tarea.actualizar_prioridad(PrioridadTarea[prioridad])
+
+        if estado is not None:
+            tarea.cambiar_estado(EstadoTarea[estado])
+
+        if vencimiento is not None:
+            tarea.establecer_vencimiento(vencimiento)
+
+        if comentario is not None:
+            tarea.comentario = comentario
+
+        resultado = self._repo.guardar(tarea)
+        return self._to_dto(resultado)
+
     def cambiar_estado(self, id_tarea: str, nuevo_estado: str) -> TareaDTO:
         """Cambia el estado de una tarea"""
         tarea = self._repo.obtener_por_id(id_tarea)
@@ -544,6 +580,10 @@ class TareaService:
         """Obtiene una tarea por ID"""
         tarea = self._repo.obtener_por_id(id_tarea)
         return self._to_dto(tarea) if tarea else None
+
+    def listar_todas(self) -> List[TareaDTO]:
+        """Lista todas las tareas"""
+        return [self._to_dto(t) for t in self._repo.listar_todas()]
 
     def listar_por_asesor(self, email_asesor: str) -> List[TareaDTO]:
         """Lista tareas asignadas a un asesor"""
@@ -893,9 +933,66 @@ class ReporteTareasService:
             estadisticas=estadisticas,
         )
 
+    def generar_resumen_global(
+        self,
+        *,
+        momento_actual: Optional[datetime] = None,
+    ) -> Dict[str, Any]:
+        """
+        Genera un resumen listo para renderizar en templates (sin filtros por fecha).
+
+        Retorna un dict con la forma esperada por `templates/tareas/reportes.html`:
+        - total, completadas, vencidas
+        - por_estado, por_prioridad
+        - por_asesor: {email: {nombre, total, completadas, pendientes}}
+        """
+        momento = momento_actual or datetime.now()
+        tareas = self._tarea_repo.listar_todas()
+        estadisticas = self._calcular_estadisticas(tareas, momento)
+
+        completadas = estadisticas.por_estado.get(EstadoTarea.COMPLETADA.value, 0)
+        vencidas = estadisticas.vencidas_total
+
+        por_asesor: Dict[str, Dict[str, Any]] = {}
+        for t in tareas:
+            if not t.asignadaA:
+                continue
+            email = t.asignadaA.emailAsesor
+            entry = por_asesor.setdefault(
+                email,
+                {"nombre": email, "total": 0, "completadas": 0, "pendientes": 0},
+            )
+            entry["total"] += 1
+            if t.estado == EstadoTarea.COMPLETADA:
+                entry["completadas"] += 1
+            elif t.estado in (EstadoTarea.PENDIENTE, EstadoTarea.EN_PROGRESO):
+                entry["pendientes"] += 1
+
+        # Si tenemos repositorio de asesores, reemplazar nombre por nombre completo
+        if self._asesor_repo is not None:
+            for email, datos in por_asesor.items():
+                asesor = self._asesor_repo.obtener_por_email(email)
+                if asesor:
+                    datos["nombre"] = asesor.obtener_nombre_completo()
+
+        return {
+            "total": estadisticas.total_tareas,
+            "completadas": completadas,
+            "vencidas": vencidas,
+            "por_estado": estadisticas.por_estado,
+            "por_prioridad": estadisticas.por_prioridad,
+            "por_asesor": por_asesor,
+        }
+
     def _calcular_estadisticas(self, tareas: List[Tarea],
                                 momento: datetime) -> EstadisticasTareasDTO:
         """Calcula estadísticas a partir de lista de tareas"""
+        # Normalizar comparaciones de datetime (naive vs aware) para evitar TypeError en Django
+        try:
+            from django.utils import timezone as dj_timezone  # type: ignore
+        except Exception:  # pragma: no cover
+            dj_timezone = None
+
         # Conteo por estado
         por_estado = {e.value: 0 for e in EstadoTarea}
         for t in tareas:
@@ -911,11 +1008,21 @@ class ReporteTareasService:
         vencidas_total = 0
         for t in tareas:
             if t.estado in [EstadoTarea.PENDIENTE, EstadoTarea.EN_PROGRESO]:
-                if t.vencimiento and t.vencimiento < momento:
-                    vencidas_total += 1
-                    if t.asignadaA:
-                        email = t.asignadaA.emailAsesor
-                        vencidas_por_asesor[email] = vencidas_por_asesor.get(email, 0) + 1
+                if t.vencimiento:
+                    venc = t.vencimiento
+                    mom = momento
+                    if dj_timezone is not None:
+                        tz = dj_timezone.get_current_timezone()
+                        if dj_timezone.is_aware(venc) and dj_timezone.is_naive(mom):
+                            mom = dj_timezone.make_aware(mom, tz)
+                        elif dj_timezone.is_naive(venc) and dj_timezone.is_aware(mom):
+                            venc = dj_timezone.make_aware(venc, tz)
+
+                    if venc < mom:
+                        vencidas_total += 1
+                        if t.asignadaA:
+                            email = t.asignadaA.emailAsesor
+                            vencidas_por_asesor[email] = vencidas_por_asesor.get(email, 0) + 1
 
         # Completadas por asesor
         completadas_por_asesor: Dict[str, int] = {}
