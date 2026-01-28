@@ -53,8 +53,10 @@ class Asesor(models.Model):
     nombres = models.CharField(max_length=100, null=False)
     apellidos = models.CharField(max_length=100, null=False)
     email_asesor = models.EmailField(unique=True, null=False)
+    password_hash = models.CharField(max_length=128, null=False, default='')  # Hash de contraseña
     rol = models.CharField(max_length=20, choices=ROL_CHOICES, default=RolUsuario.ASESOR.value)
     activo = models.BooleanField(default=True)
+    ultimo_acceso = models.DateTimeField(null=True, blank=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 

@@ -3,72 +3,11 @@
 
 import behave.runner
 from behave import step, use_step_matcher
-from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import Enum
-from typing import Dict, List, Optional
-
+from SGPM.domain.entities import *
+from SGPM.domain.enums import *
 use_step_matcher("re")
 
-
-# ============================================================
-# Enums (según UML)
-# ============================================================
-class RolUsuario(Enum):
-    ASESOR = "ASESOR"
-    SUPERVISOR = "SUPERVISOR"
-
-
-class EstadoTarea(Enum):
-    PENDIENTE = "PENDIENTE"
-    EN_PROGRESO = "EN_PROGRESO"
-    COMPLETADA = "COMPLETADA"
-    CANCELADA = "CANCELADA"
-
-
-class PrioridadTarea(Enum):
-    BAJA = "BAJA"
-    MEDIA = "MEDIA"
-    ALTA = "ALTA"
-    CRITICA = "CRITICA"
-
-
-class TipoNotificacion(Enum):
-    RECORDATORIO = "RECORDATORIO"
-    DOC_FALTANTE = "DOC_FALTANTE"
-    CITA_PROXIMA = "CITA_PROXIMA"
-    ASIGNACION_TAREA = "ASIGNACION_TAREA"
-
-
-# ============================================================
-# Entidades (según UML)
-# ============================================================
-@dataclass
-class Asesor:
-    nombres: str
-    apellidos: str
-    email_asesor: str
-    rol: RolUsuario
-
-
-@dataclass
-class Tarea:
-    id_tarea: str
-    vencimiento: Optional[datetime]
-    estado: EstadoTarea
-    prioridad: PrioridadTarea
-    comentario: str
-    titulo: str
-    asignada_a: Optional[Asesor]  # UML: Tarea "*" --> "1" Asesor : asignada_a
-
-
-@dataclass
-class Notificacion:
-    id_notificacion: str
-    destinatario: str
-    tipo: TipoNotificacion
-    mensaje: str
-    creada_en: datetime
 
 
 # ============================================================

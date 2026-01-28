@@ -4,18 +4,18 @@ from enum import Enum
 
 class RolUsuario(str, Enum):
     ASESOR = "ASESOR"
-    ADMIN = "ADMIN"
-    OPERADOR = "OPERADOR"
+    SUPERVISOR = "SUPERVISOR"
 
 
-class EstadoSolicitud(str, Enum):
-    CREADA = "CREADA"
-    EN_REVISION = "EN_REVISION"
-    DOCUMENTOS_PENDIENTES = "DOCUMENTOS_PENDIENTES"
-    ENVIADA = "ENVIADA"
-    APROBADA = "APROBADA"
-    RECHAZADA = "RECHAZADA"
-    CERRADA = "CERRADA"
+class EstadoSolicitud(Enum):
+    CREADA = "Creada"
+    EN_REVISION = "En revision"
+    DOCUMENTOS_PENDIENTES = "Documentos pendientes"
+    ENVIADA = "Enviada"
+    APROBADA = "Aprobada"
+    RECHAZADA = "Rechazada"
+    CERRADA = "Cerrada"
+    ARCHIVADA = "Archivada"  # requerido por tu feature
 
 
 class TipoServicio(str, Enum):

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SGPM | Tareas</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/estilos.css' %}">
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-icon">
+                <i class="fa-solid fa-passport"></i>
+            </div>
+            <div class="sidebar-brand-text">
+                <h1>SGPM</h1>
+                <span>Gestión Migratoria</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-label">Principal</div>
+            <a href="{% url 'dashboard' %}" class="nav-item">
+                <i class="fa-solid fa-house"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'solicitante' %}" class="nav-item">
+                <i class="fa-solid fa-users"></i>
+                <span>Solicitante</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fa-solid fa-folder-open"></i>
+                <span>Expedientes</span>
+            </a>
+            <a href="{% url 'tareas_listar' %}" class="nav-item active">
+                <i class="fa-solid fa-tasks"></i>
+                <span>Tareas</span>
+            </a>
+            <a href="{% url 'citas_listar' %}" class="nav-item">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Citas</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-user">
+            <div class="user-avatar">
+                {{ user.first_name|slice:":1"|upper|default:user.username|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper|default:"" }}
+            </div>
+            <div class="user-info">
+                <h4>{{ user.get_full_name|default:user.username }}</h4>
+                <span>{{ user.email|default:"Sin email" }}</span>
+            </div>
+            <a href="{% url 'logout' %}" class="logout-btn" title="Cerrar sesión">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-title">
+                <h2>Tareas</h2>
+                <p>{% if es_admin %}Gestión de todas las tareas{% else %}Mis tareas asignadas{% endif %}</p>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <div class="card">
+                <div class="card-content">
+                    {% if es_admin %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0;">Listado de Tareas</h3>
+                        <div style="display: flex; gap: 0.75rem;">
+                            <a href="{% url 'tareas_crear' %}" class="btn-primary">
+                                <i class="fa-solid fa-plus"></i>
+                                Nueva Tarea
+                            </a>
+                            <a href="{% url 'tareas_reportes' %}" class="btn-secondary">
+                                <i class="fa-solid fa-chart-bar"></i>
+                                Reportes
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0;">Mis Tareas</h3>
+                    </div>
+                    {% endif %}
+
+                    {% if tareas %}
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: var(--bg-main); border-bottom: 2px solid var(--border-color);">
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">ID</th>
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">Título</th>
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">Prioridad</th>
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">Estado</th>
+                                    {% if es_admin %}
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">Asignada a</th>
+                                    {% endif %}
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">Vencimiento</th>
+                                    <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: var(--text-dark);">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tarea in tareas %}
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 0.75rem;">{{ tarea.id_tarea }}</td>
+                                    <td style="padding: 0.75rem;">{{ tarea.titulo }}</td>
+                                    <td style="padding: 0.75rem;">
+                                        <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500;
+                                            {% if tarea.prioridad == 'CRITICA' %}background: #fee2e2; color: #dc2626;
+                                            {% elif tarea.prioridad == 'ALTA' %}background: #fef3c7; color: #d97706;
+                                            {% elif tarea.prioridad == 'MEDIA' %}background: #dbeafe; color: #2563eb;
+                                            {% else %}background: #f3f4f6; color: #6b7280;{% endif %}">
+                                            {{ tarea.prioridad }}
+                                        </span>
+                                    </td>
+                                    <td style="padding: 0.75rem;">
+                                        <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500;
+                                            {% if tarea.estado == 'COMPLETADA' %}background: #d1fae5; color: #065f46;
+                                            {% elif tarea.estado == 'EN_PROGRESO' %}background: #dbeafe; color: #1e40af;
+                                            {% elif tarea.estado == 'CANCELADA' %}background: #fee2e2; color: #991b1b;
+                                            {% else %}background: #fef3c7; color: #92400e;{% endif %}">
+                                            {{ tarea.estado }}
+                                        </span>
+                                    </td>
+                                    {% if es_admin %}
+                                    <td style="padding: 0.75rem;">
+                                        {% if tarea.asignada_a %}
+                                            {{ tarea.asignada_a.obtener_nombre_completo }}
+                                        {% else %}
+                                            <span style="color: var(--text-muted);">Sin asignar</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                    <td style="padding: 0.75rem;">
+                                        {% if tarea.vencimiento %}
+                                            {{ tarea.vencimiento|date:"d/m/Y H:i" }}
+                                        {% else %}
+                                            <span style="color: var(--text-muted);">Sin vencimiento</span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="padding: 0.75rem; text-align: center;">
+                                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                            <a href="{% url 'tareas_editar' tarea.id_tarea %}" class="btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 0.85rem;">
+                                                <i class="fa-solid fa-edit"></i>
+                                            </a>
+                                            {% if es_admin %}
+                                            <form method="post" action="{% url 'tareas_eliminar' tarea.id_tarea %}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar esta tarea?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; background: #fee2e2; color: #dc2626; border: none;">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                        <i class="fa-solid fa-tasks" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                        <p>No hay tareas disponibles</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

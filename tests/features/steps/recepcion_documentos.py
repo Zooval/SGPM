@@ -3,81 +3,11 @@
 
 import behave.runner
 from behave import step, use_step_matcher
-from dataclasses import dataclass
-from enum import Enum
 from datetime import date, datetime, timedelta
+from SGPM.domain.enums import *
+from SGPM.domain.entities import *
 
 use_step_matcher("re")
-
-
-# ============================================================
-# Enums necesarios (según diagrama)
-# ============================================================
-class TipoDocumento(Enum):
-    PASAPORTE = "PASAPORTE"
-    ANTECEDENTES = "ANTECEDENTES"
-    ESTADOS_BANCARIOS = "ESTADOS_BANCARIOS"
-    CONTRATO_TRABAJO = "CONTRATO_TRABAJO"
-    MATRICULA_ESTUDIOS = "MATRICULA_ESTUDIOS"
-    OTROS = "OTROS"
-
-
-class EstadoDocumento(Enum):
-    RECIBIDO = "RECIBIDO"
-    APROBADO = "APROBADO"
-    RECHAZADO = "RECHAZADO"
-    VENCIDO = "VENCIDO"
-
-
-class TipoServicio(Enum):
-    VISA_TURISMO = "VISA_TURISMO"
-    VISA_TRABAJO = "VISA_TRABAJO"
-    ESTUDIOS = "ESTUDIOS"
-    RESIDENCIA = "RESIDENCIA"
-
-
-class EstadoSolicitud(Enum):
-    CREADA = "CREADA"
-    EN_REVISION = "EN_REVISION"
-    DOCUMENTOS_PENDIENTES = "DOCUMENTOS_PENDIENTES"
-    ENVIADA = "ENVIADA"
-    APROBADA = "APROBADA"
-    RECHAZADA = "RECHAZADA"
-    CERRADA = "CERRADA"
-
-
-# ============================================================
-# Clases necesarias (según diagrama: atributos exactos)
-# ============================================================
-@dataclass
-class Solicitante:
-    cedula: str
-    nombres: str
-    apellidos: str
-    correo: str
-    telefono: str
-    direccion: str
-    fecha_nacimiento: date
-    habilitado: bool
-
-
-@dataclass
-class SolicitudMigratoria:
-    codigo: str
-    tipo_servicio: TipoServicio
-    estado_actual: EstadoSolicitud
-    fecha_creacion: datetime
-    fecha_expiracion: datetime
-
-
-@dataclass
-class Documento:
-    id_documento: str
-    tipo: TipoDocumento
-    estado: EstadoDocumento
-    fecha_expiracion: date
-    version_actual: int
-    observacion: str
 
 
 # ============================================================

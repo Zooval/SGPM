@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 
@@ -16,7 +15,7 @@ from .enums import (
     EstadoCita,
     TipoNotificacion,
 )
-from .value_objects import RangoFechaHora
+from .value_objects import RangoFechaHora, FiltroReporteTareas, EstadisticasTareas
 
 
 # =========================
@@ -80,13 +79,27 @@ def parse_estado_solicitud(texto: str) -> EstadoSolicitud:
 class Solicitante:
     """Representa al solicitante/migrante según el diagrama"""
 
-    def __init__(self, cedula, nombres, apellidos, correo, telefono, fechaNacimiento=None):
+    def __init__(self, cedula, nombres, apellidos, correo, telefono, fecha_nacimiento=None,
+                 direccion: str = "", habilitado: bool = True):
+        # Atributos privados para compatibilidad con métodos getter
         self._cedula = cedula
         self._nombres = nombres
         self._apellidos = apellidos
         self._correo = correo
         self._telefono = telefono
-        self._fecha_nacimiento = fechaNacimiento
+        self._fecha_nacimiento = fecha_nacimiento
+        self._direccion = direccion
+        self._habilitado = habilitado
+
+        # Atributos públicos para acceso directo (manejo_datos_solicitantes.py)
+        self.cedula = cedula
+        self.nombres = nombres
+        self.apellidos = apellidos
+        self.correo = correo
+        self.telefono = telefono
+        self.fecha_nacimiento = fecha_nacimiento
+        self.direccion = direccion
+        self.habilitado = habilitado
 
         # Relación UML: Solicitante tiene varios documentos
         self._documentos: List["Documento"] = []
@@ -117,10 +130,13 @@ class Solicitante:
 class Asesor:
     """Representa un asesor según el diagrama UML"""
 
-    def __init__(self, nombres: str, apellidos: str, emailAsesor: str, rol: RolUsuario = RolUsuario.ASESOR):
+    def __init__(self, nombres: str, apellidos: str, emailAsesor: str = None, email_asesor: str = None,
+                 rol: RolUsuario = RolUsuario.ASESOR):
         self.nombres = nombres
         self.apellidos = apellidos
-        self.emailAsesor = emailAsesor
+        # Soportar ambos formatos para compatibilidad
+        self.email_asesor = email_asesor or emailAsesor
+        self.emailAsesor = self.email_asesor  # Alias para compatibilidad
         self.rol = rol
         self._tareas_asignadas: List["Tarea"] = []
 
@@ -145,13 +161,22 @@ class Asesor:
 class Documento:
     """Representa un documento según el diagrama"""
 
-    def __init__(self, id_documento, tipo, estado=EstadoDocumento.RECIBIDO):
+    def __init__(self, id_documento, tipo, estado=EstadoDocumento.RECIBIDO,
+                 fecha_expiracion=None, version_actual=1, observacion=""):
         self._id = id_documento
         self._tipo = tipo
         self._estado = estado
-        self._fecha_expiracion = None
-        self._version_actual = 1
-        self._observacion = None
+        self._fecha_expiracion = fecha_expiracion
+        self._version_actual = version_actual
+        self._observacion = observacion
+
+        # Atributos públicos para acceso directo (BDD steps)
+        self.id_documento = id_documento
+        self.tipo = tipo
+        self.estado = estado
+        self.fecha_expiracion = fecha_expiracion
+        self.version_actual = version_actual
+        self.observacion = observacion
 
     def obtener_tipo(self):
         """Retorna el tipo del documento"""
@@ -165,10 +190,13 @@ class Documento:
         """Marca el documento como rechazado con una observación"""
         self._estado = EstadoDocumento.RECHAZADO
         self._observacion = observacion
+        self.estado = EstadoDocumento.RECHAZADO
+        self.observacion = observacion
 
     def marcar_como_aprobado(self):
         """Marca el documento como aprobado"""
         self._estado = EstadoDocumento.APROBADO
+        self.estado = EstadoDocumento.APROBADO
 
     def esta_rechazado(self):
         """Verifica si el documento está rechazado"""
@@ -183,30 +211,43 @@ class Documento:
         return self._observacion is not None and len(self._observacion) > 0
 
 
-@dataclass
 class Cita:
-    idCita: str
-    solicitudCodigo: str
-    observacion: str
-    rango: RangoFechaHora
-    tipo: TipoCita
-    estado: EstadoCita
+    """Representa una cita según el diagrama"""
+
+    def __init__(self, id_cita: str, observacion: str, rango: RangoFechaHora,
+                 tipo: TipoCita, estado: EstadoCita, solicitud_codigo: str = None,
+                 # Alias para compatibilidad
+                 idCita: str = None, solicitudCodigo: str = None):
+        # Soportar ambos formatos
+        self.id_cita = id_cita or idCita
+        self.idCita = self.id_cita  # Alias para compatibilidad
+        self.solicitud_codigo = solicitud_codigo or solicitudCodigo
+        self.solicitudCodigo = self.solicitud_codigo  # Alias para compatibilidad
+        self.observacion = observacion
+        self.rango = rango
+        self.tipo = tipo
+        self.estado = estado
 
 
 class Tarea:
     """Representa una tarea según el diagrama UML"""
 
-    def __init__(self, idTarea: str, titulo: str, prioridad: PrioridadTarea,
+    def __init__(self, idTarea: str = None, titulo: str = None, prioridad: PrioridadTarea = None,
                  vencimiento: Optional[datetime] = None, comentario: str = "",
                  estado: EstadoTarea = EstadoTarea.PENDIENTE,
-                 asignadaA: Optional[Asesor] = None):
-        self.idTarea = idTarea
+                 asignadaA: Optional[Asesor] = None,
+                 # Aliases en snake_case
+                 id_tarea: str = None, asignada_a: Optional[Asesor] = None):
+        # Soportar ambos formatos
+        self.id_tarea = id_tarea or idTarea
+        self.idTarea = self.id_tarea  # Alias para compatibilidad
         self.titulo = titulo
         self.prioridad = prioridad
         self.vencimiento = vencimiento
         self.comentario = comentario
         self.estado = estado
-        self.asignadaA = asignadaA
+        self.asignada_a = asignada_a or asignadaA
+        self.asignadaA = self.asignada_a  # Alias para compatibilidad
 
     def asignar_a_asesor(self, asesor: Asesor) -> None:
         """Asigna la tarea a un asesor"""
@@ -266,12 +307,17 @@ class Tarea:
 class Notificacion:
     """Representa una notificación según el diagrama"""
 
-    def __init__(self, id_notificacion, destinatario, tipo, mensaje):
-        self._id = id_notificacion
-        self._destinatario = destinatario
-        self._tipo = tipo
-        self._mensaje = mensaje
-        self._creada_en = datetime.now()
+    def __init__(self, id_notificacion, destinatario, tipo, mensaje, creada_en: Optional[datetime] = None):
+        self.id_notificacion = id_notificacion
+        self._id = id_notificacion  # Alias para compatibilidad
+        self.destinatario = destinatario
+        self._destinatario = destinatario  # Alias para compatibilidad
+        self.tipo = tipo
+        self._tipo = tipo  # Alias para compatibilidad
+        self.mensaje = mensaje
+        self._mensaje = mensaje  # Alias para compatibilidad
+        self.creada_en = creada_en or datetime.now()
+        self._creada_en = self.creada_en  # Alias para compatibilidad
         self._leida = False
 
     def fue_creada(self):
@@ -592,3 +638,30 @@ class SolicitudMigratoria:
     def documentos_fueron_registrados(self, cantidad_esperada: int) -> bool:
         """Verifica si la cantidad de documentos registrados coincide"""
         return len(self._documentos) == cantidad_esperada
+
+
+class ReporteTareas:
+    """Representa un reporte de tareas según el diagrama UML"""
+
+    def __init__(self, id_reporte: str, creado_en: datetime, filtro: FiltroReporteTareas,
+                 estadisticas: EstadisticasTareas):
+        self.id_reporte = id_reporte
+        self.creado_en = creado_en
+        self.filtro = filtro
+        self.estadisticas = estadisticas
+
+    def obtener_id(self) -> str:
+        """Retorna el ID del reporte"""
+        return self.id_reporte
+
+    def obtener_fecha_creacion(self) -> datetime:
+        """Retorna la fecha de creación del reporte"""
+        return self.creado_en
+
+    def obtener_filtro(self) -> FiltroReporteTareas:
+        """Retorna el filtro aplicado al reporte"""
+        return self.filtro
+
+    def obtener_estadisticas(self) -> EstadisticasTareas:
+        """Retorna las estadísticas del reporte"""
+        return self.estadisticas
