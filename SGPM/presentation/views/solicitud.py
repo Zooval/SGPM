@@ -32,3 +32,10 @@ def cambio_estado_view(request):
         'page_title': 'cambio estado'
     }
     return render(request, 'solicitudes/cambio_estado.html', context)
+
+@login_required
+def gestion_fechas_view(request):
+    context = {
+        'page_title': 'gestion fechas'
+    }
+    return render(request, 'solicitudes/gestion_fechas.html', context)

@@ -68,7 +68,7 @@
                         </div>
                     </a>
 
-                    <a href="fechas_clave.html" class="menu-card">
+                    <a href="{% url 'gestion-fechas' %}" class="menu-card {% if request.resolver_match.url_name == 'gestion-fechas' %}active{% endif %}">
                         <div class="menu-card-icon orange">
                             <i class="fa-solid fa-calendar-check"></i>
                         </div>

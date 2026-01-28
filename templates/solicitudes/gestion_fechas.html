@@ -1,10 +1,294 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
 
-</body>
-</html>
+{% block title %}SGPM | Clientes{% endblock %}
+{% block page_title %}Solicitudes{% endblock %}
+{% block page_subtitle %}Gestión de solicitudes {% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+        <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+{% endblock %}
+
+{% block page_content %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-title">
+                <h2>Gestión de Fechas del Proceso</h2>
+                <p>Asignar y editar fechas clave del trámite migratorio</p>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+
+            <!-- Búsqueda de Expediente -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <div>
+                        <h3>Buscar Expediente</h3>
+                        <p>Ingrese el ID del expediente o cédula del solicitante</p>
+                    </div>
+                </div>
+
+                <form id="buscarExpedienteForm" class="registro-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fa-solid fa-hashtag"></i>
+                                ID del Expediente
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="expedienteId"
+                                name="expedienteId"
+                                placeholder="Ej: EXP-202601-JG1234"
+                            />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fa-solid fa-id-card"></i>
+                                Cédula del Solicitante
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="cedula"
+                                name="cedula"
+                                placeholder="Ej: 1234567890"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fa-solid fa-search"></i>
+                            Buscar Expediente
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Información del Expediente (se muestra después de buscar) -->
+            <div id="expedienteInfo" style="display: none;">
+                <div class="welcome-card" style="margin-bottom: var(--spacing-lg);">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div>
+                            <h3 style="margin-bottom: 0.5rem;">
+                                <i class="fa-solid fa-folder-open"></i>
+                                Expediente: <span id="displayExpedienteId"></span>
+                            </h3>
+                            <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">
+                                <strong>Solicitante:</strong> <span id="displayNombre"></span><br>
+                                <strong>Tipo de Servicio:</strong> <span id="displayTipoServicio"></span><br>
+                                <strong>Fecha de Creación:</strong> <span id="displayFechaCreacion"></span>
+                            </p>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="display: inline-block; padding: 0.5rem 1rem; background: rgba(255,255,255,0.25); border-radius: var(--radius-md); font-weight: 600;">
+                                Estado: <span id="displayEstado"></span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulario de Gestión de Fechas -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-icon">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                        <div>
+                            <h3>Fechas del Proceso</h3>
+                            <p>Gestione las fechas clave del trámite migratorio</p>
+                        </div>
+                    </div>
+
+                    <form id="fechasForm" class="registro-form">
+
+                        <!-- Timeline Visual -->
+                        <div class="form-section">
+                            <div class="section-header">
+                                <i class="fa-solid fa-timeline"></i>
+                                <h4>Línea de Tiempo del Proceso</h4>
+                            </div>
+
+                            <div class="timeline-container">
+                                <div class="timeline-item">
+                                    <div class="timeline-icon completed">
+                                        <i class="fa-solid fa-check"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h5>Solicitud Creada</h5>
+                                        <p class="timeline-date" id="timelineFechaCreacion">-</p>
+                                    </div>
+                                </div>
+
+                                <div class="timeline-connector"></div>
+
+                                <div class="timeline-item" id="timelineRecepcion">
+                                    <div class="timeline-icon pending">
+                                        <i class="fa-solid fa-file-import"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h5>Recepción de Documentos</h5>
+                                        <p class="timeline-date" id="timelineFechaRecepcion">Pendiente</p>
+                                    </div>
+                                </div>
+
+                                <div class="timeline-connector"></div>
+
+                                <div class="timeline-item" id="timelineEnvio">
+                                    <div class="timeline-icon pending">
+                                        <i class="fa-solid fa-paper-plane"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h5>Envío de Solicitud</h5>
+                                        <p class="timeline-date" id="timelineFechaEnvio">Pendiente</p>
+                                    </div>
+                                </div>
+
+                                <div class="timeline-connector"></div>
+
+                                <div class="timeline-item" id="timelineCita">
+                                    <div class="timeline-icon pending">
+                                        <i class="fa-solid fa-calendar-check"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h5>Cita Programada</h5>
+                                        <p class="timeline-date" id="timelineFechaCita">Pendiente</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campos de Fechas -->
+                        <div class="form-section">
+                            <div class="section-header">
+                                <i class="fa-solid fa-calendar-plus"></i>
+                                <h4>Gestión de Fechas</h4>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group full-width">
+                                    <label class="form-label">
+                                        <i class="fa-solid fa-file-import"></i>
+                                        Fecha de Recepción de Documentos
+                                    </label>
+                                    <input
+                                        type="date"
+                                        class="form-control"
+                                        id="fechaRecepcionDocs"
+                                        name="fechaRecepcionDocs"
+                                    />
+                                    <span class="field-help">
+                                        <i class="fa-solid fa-circle-info"></i>
+                                        Fecha en que se recibieron todos los documentos del solicitante
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group full-width">
+                                    <label class="form-label">
+                                        <i class="fa-solid fa-paper-plane"></i>
+                                        Fecha de Envío de Solicitud
+                                    </label>
+                                    <input
+                                        type="date"
+                                        class="form-control"
+                                        id="fechaEnvioSolicitud"
+                                        name="fechaEnvioSolicitud"
+                                    />
+                                    <span class="field-help">
+                                        <i class="fa-solid fa-circle-info"></i>
+                                        Fecha en que se envió la solicitud a las autoridades migratorias
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group full-width">
+                                    <label class="form-label">
+                                        <i class="fa-solid fa-calendar-check"></i>
+                                        Fecha de Cita
+                                    </label>
+                                    <input
+                                        type="datetime-local"
+                                        class="form-control"
+                                        id="fechaCita"
+                                        name="fechaCita"
+                                    />
+                                    <span class="field-help">
+                                        <i class="fa-solid fa-circle-info"></i>
+                                        Fecha y hora programada para la cita en la oficina consular o migratoria
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notas Adicionales -->
+                        <div class="form-section">
+                            <div class="section-header">
+                                <i class="fa-solid fa-note-sticky"></i>
+                                <h4>Notas del Proceso</h4>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group full-width">
+                                    <label class="form-label">
+                                        <i class="fa-solid fa-comment"></i>
+                                        Observaciones sobre las Fechas
+                                    </label>
+                                    <textarea
+                                        class="form-control"
+                                        id="notasFechas"
+                                        name="notasFechas"
+                                        rows="3"
+                                        placeholder="Agregue notas relevantes sobre cambios de fechas, reprogramaciones, etc."
+                                    ></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Alertas de Validación -->
+                        <div id="validationAlert" class="error-alert" style="display: none;">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span id="validationMessage"></span>
+                        </div>
+
+                        <div id="successAlert" class="success-alert" style="display: none;">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span id="successMessage"></span>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="window.history.back()">
+                                <i class="fa-solid fa-arrow-left"></i>
+                                Cancelar
+                            </button>
+                            <button type="button" class="btn-secondary" id="btnLimpiarFechas">
+                                <i class="fa-solid fa-eraser"></i>
+                                Limpiar Fechas
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                Guardar Fechas
+                                <span class="arrow">→</span>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+{% endblock %}
