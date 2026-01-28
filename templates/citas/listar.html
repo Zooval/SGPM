@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SGPM | Citas{% endblock %}
+{% block page_title %}Agenda de Citas{% endblock %}
+{% block page_subtitle %}{{ fecha|date:"d/m/Y" }}{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="margin: 0;">Citas del Día</h3>
+            <div style="display: flex; gap: 0.75rem;">
+                <form method="get" style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="date" name="fecha" value="{{ fecha|date:'Y-m-d' }}" class="form-control" style="width: auto;">
+                    <button type="submit" class="btn-secondary">
+                        <i class="fa-solid fa-search"></i>
+                        Buscar
+                    </button>
+                </form>
+                <a href="{% url 'citas_crear' %}" class="btn-primary">
+                    <i class="fa-solid fa-plus"></i>
+                    Nueva Cita
+                </a>
+            </div>
+        </div>
+
+        {% if citas %}
+        <div style="display: grid; gap: 1rem;">
+            {% for cita in citas %}
+            <div style="padding: 1.25rem; background: var(--bg-main); border-radius: var(--radius-md); border-left: 4px solid var(--primary);">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                            <h4 style="margin: 0; color: var(--text-dark);">{{ cita.id_cita }}</h4>
+                            <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500;
+                                {% if cita.estado == 'PROGRAMADA' %}background: #dbeafe; color: #1e40af;
+                                {% elif cita.estado == 'REPROGRAMADA' %}background: #fef3c7; color: #92400e;
+                                {% elif cita.estado == 'COMPLETADA' %}background: #d1fae5; color: #065f46;
+                                {% elif cita.estado == 'CANCELADA' %}background: #fee2e2; color: #991b1b;
+                                {% else %}background: #f3f4f6; color: #6b7280;{% endif %}">
+                                {{ cita.estado }}
+                            </span>
+                            <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500; background: #e0f2fe; color: #0369a1;">
+                                {{ cita.tipo }}
+                            </span>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 0.75rem;">
+                            <div>
+                                <strong style="color: var(--text-muted); font-size: 0.85rem;">Horario:</strong>
+                                <p style="margin: 0.25rem 0 0; font-weight: 500;">
+                                    <i class="fa-solid fa-clock" style="color: var(--primary);"></i>
+                                    {{ cita.inicio|date:"H:i" }} - {{ cita.fin|date:"H:i" }}
+                                </p>
+                            </div>
+                            
+                            {% if cita.solicitud %}
+                            <div>
+                                <strong style="color: var(--text-muted); font-size: 0.85rem;">Solicitud:</strong>
+                                <p style="margin: 0.25rem 0 0; font-weight: 500;">
+                                    <i class="fa-solid fa-folder" style="color: var(--primary);"></i>
+                                    {{ cita.solicitud.codigo }}
+                                </p>
+                            </div>
+                            
+                            {% if cita.solicitud.solicitante %}
+                            <div>
+                                <strong style="color: var(--text-muted); font-size: 0.85rem;">Solicitante:</strong>
+                                <p style="margin: 0.25rem 0 0; font-weight: 500;">
+                                    <i class="fa-solid fa-user" style="color: var(--primary);"></i>
+                                    {{ cita.solicitud.solicitante.obtener_nombre_completo }}
+                                </p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if cita.solicitud.asesor %}
+                            <div>
+                                <strong style="color: var(--text-muted); font-size: 0.85rem;">Asesor:</strong>
+                                <p style="margin: 0.25rem 0 0; font-weight: 500;">
+                                    <i class="fa-solid fa-user-tie" style="color: var(--primary);"></i>
+                                    {{ cita.solicitud.asesor.obtener_nombre_completo }}
+                                </p>
+                            </div>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                        
+                        {% if cita.observacion %}
+                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: white; border-radius: var(--radius-sm);">
+                            <strong style="color: var(--text-muted); font-size: 0.85rem;">Observación:</strong>
+                            <p style="margin: 0.25rem 0 0; color: var(--text-dark);">{{ cita.observacion }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                        {% if cita.estado != 'CANCELADA' and cita.estado != 'COMPLETADA' %}
+                        <a href="{% url 'citas_reprogramar' cita.id_cita %}" class="btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 0.85rem;">
+                            <i class="fa-solid fa-calendar-days"></i>
+                            Reprogramar
+                        </a>
+                        <form method="post" action="{% url 'citas_cancelar' cita.id_cita %}" style="display: inline;" onsubmit="return confirm('¿Estás seguro de cancelar esta cita?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; background: #fee2e2; color: #dc2626; border: none;">
+                                <i class="fa-solid fa-times"></i>
+                                Cancelar
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+            <i class="fa-solid fa-calendar-xmark" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+            <p>No hay citas programadas para este día</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

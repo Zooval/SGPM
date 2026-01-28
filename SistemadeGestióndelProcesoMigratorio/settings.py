@@ -122,3 +122,7 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
+
+# Autenticación personalizada
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'

@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SGPM | Tareas{% endblock %}
+{% block page_title %}Tareas{% endblock %}
+{% block page_subtitle %}Gestión de tareas{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="margin: 0;">Listado de Tareas</h3>
+            {% if request.session.asesor_rol == 'SUPERVISOR' %}
+            <div style="display: flex; gap: 0.75rem;">
+                <a href="{% url 'tareas_crear' %}" class="btn-primary">
+                    <i class="fa-solid fa-plus"></i>
+                    Nueva Tarea
+                </a>
+                <a href="{% url 'tareas_reportes' %}" class="btn-secondary">
+                    <i class="fa-solid fa-chart-bar"></i>
+                    Reportes
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if tareas %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-main); border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">ID</th>
+                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">Título</th>
+                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">Prioridad</th>
+                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">Estado</th>
+                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">Asignada a</th>
+                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: var(--text-dark);">Vencimiento</th>
+                        <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: var(--text-dark);">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tarea in tareas %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 0.75rem;">{{ tarea.id_tarea }}</td>
+                        <td style="padding: 0.75rem;">{{ tarea.titulo }}</td>
+                        <td style="padding: 0.75rem;">
+                            <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500;
+                                {% if tarea.prioridad == 'CRITICA' %}background: #fee2e2; color: #dc2626;
+                                {% elif tarea.prioridad == 'ALTA' %}background: #fef3c7; color: #d97706;
+                                {% elif tarea.prioridad == 'MEDIA' %}background: #dbeafe; color: #2563eb;
+                                {% else %}background: #f3f4f6; color: #6b7280;{% endif %}">
+                                {{ tarea.prioridad }}
+                            </span>
+                        </td>
+                        <td style="padding: 0.75rem;">
+                            <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500;
+                                {% if tarea.estado == 'COMPLETADA' %}background: #d1fae5; color: #065f46;
+                                {% elif tarea.estado == 'EN_PROGRESO' %}background: #dbeafe; color: #1e40af;
+                                {% elif tarea.estado == 'CANCELADA' %}background: #fee2e2; color: #991b1b;
+                                {% else %}background: #fef3c7; color: #92400e;{% endif %}">
+                                {{ tarea.estado }}
+                            </span>
+                        </td>
+                        <td style="padding: 0.75rem;">
+                            {% if tarea.asignada_a %}
+                                {{ tarea.asignada_a.obtener_nombre_completo }}
+                            {% else %}
+                                <span style="color: var(--text-muted);">Sin asignar</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.75rem;">
+                            {% if tarea.vencimiento %}
+                                {{ tarea.vencimiento|date:"d/m/Y H:i" }}
+                            {% else %}
+                                <span style="color: var(--text-muted);">Sin vencimiento</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 0.75rem; text-align: center;">
+                            <a href="{% url 'tareas_editar' tarea.id_tarea %}" class="btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 0.85rem;">
+                                <i class="fa-solid fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+            <i class="fa-solid fa-tasks" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+            <p>No hay tareas disponibles</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

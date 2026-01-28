@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SGPM | Crear Cita{% endblock %}
+{% block page_title %}Crear Nueva Cita{% endblock %}
+{% block page_subtitle %}Agendar una nueva cita migratoria{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-content">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-folder"></i>
+                    Solicitud Migratoria *
+                </label>
+                <select name="solicitud_id" class="form-control" required>
+                    <option value="">Seleccione una solicitud</option>
+                    {% for solicitud in solicitudes %}
+                    <option value="{{ solicitud.codigo }}">
+                        {{ solicitud.codigo }} - 
+                        {% if solicitud.solicitante %}{{ solicitud.solicitante.obtener_nombre_completo }}{% else %}Sin solicitante{% endif %}
+                        ({{ solicitud.estado_actual }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-tag"></i>
+                    Tipo de Cita *
+                </label>
+                <select name="tipo" class="form-control" required>
+                    <option value="">Seleccione un tipo</option>
+                    {% for tipo in tipos_cita %}
+                    <option value="{{ tipo.value }}">{{ tipo.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fa-solid fa-calendar-plus"></i>
+                        Fecha y Hora de Inicio *
+                    </label>
+                    <input type="datetime-local" name="inicio" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fa-solid fa-calendar-minus"></i>
+                        Fecha y Hora de Fin *
+                    </label>
+                    <input type="datetime-local" name="fin" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-comment"></i>
+                    Observación
+                </label>
+                <textarea name="observacion" class="form-control" rows="3" placeholder="Observaciones adicionales sobre la cita"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn-primary">
+                    <i class="fa-solid fa-check"></i>
+                    Crear Cita
+                </button>
+                <a href="{% url 'citas_listar' %}" class="btn-secondary">
+                    <i class="fa-solid fa-times"></i>
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

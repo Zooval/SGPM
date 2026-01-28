@@ -22,7 +22,6 @@ def login_view(request):
     if request.method == 'POST':
         email = request.POST.get('email', '').strip()
         password = request.POST.get('password', '')
-        remember = request.POST.get('remember')
 
         # Validar campos vacíos
         if not email or not password:
@@ -40,15 +39,9 @@ def login_view(request):
             request.session['asesor_nombre'] = asesor.nombre_completo()
             request.session['asesor_rol'] = asesor.rol
 
-            # Configurar duración de la sesión
-            if remember:
-                # Sesión dura 30 días
-                request.session.set_expiry(60 * 60 * 24 * 30)
-            else:
-                # Sesión expira al cerrar navegador
-                request.session.set_expiry(0)
+            # Sesión expira al cerrar navegador
+            request.session.set_expiry(0)
 
-            messages.success(request, f'¡Bienvenido, {asesor.nombres}!')
             return redirect('dashboard')
 
         except UsuarioNoEncontradoError:
@@ -69,7 +62,6 @@ def logout_view(request):
     """
     # Limpiar sesión
     request.session.flush()
-    messages.info(request, 'Has cerrado sesión correctamente.')
     return redirect('login')
 
 

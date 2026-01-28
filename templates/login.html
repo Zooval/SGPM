@@ -5,35 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>SGPM | Iniciar sesión</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    {% load static %}
+    <link href="{% static 'css/login.css' %}" rel="stylesheet">
 </head>
 
-<body class="bg-light">
+<body class="login-page">
 
-<div class="min-vh-100 d-flex align-items-center">
+<!-- Animated Background Pattern -->
+<div class="bg-decoration">
+    <div class="bg-circle bg-circle-1"></div>
+    <div class="bg-circle bg-circle-2"></div>
+    <div class="bg-circle bg-circle-3"></div>
+</div>
+
+<!-- Floating Migration Icons -->
+<div class="floating-icons">
+    <i class="bi bi-globe float-icon"></i>
+    <i class="bi bi-people float-icon"></i>
+    <i class="bi bi-file-earmark-text float-icon"></i>
+    <i class="bi bi-calendar-check float-icon"></i>
+    <i class="bi bi-shield-check float-icon"></i>
+</div>
+
+<div class="login-wrapper">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-12 col-sm-10 col-md-7 col-lg-5 col-xl-4">
 
-                <div class="card shadow border-0">
-                    <div class="card-body p-4 p-md-5">
+                <div class="card login-card">
+                    <div class="card-content">
 
-                        <div class="d-flex align-items-center gap-3 mb-4">
-                            <div class="rounded-3 d-flex align-items-center justify-content-center text-white fw-bold"
-                                 style="width:44px;height:44px;background:linear-gradient(135deg,#6f42c1,#20c997);">
+                        <div class="brand-header">
+                            <div class="brand-icon">
                                 SG
                             </div>
-                            <div>
-                                <h1 class="h5 mb-0">SGPM</h1>
-                                <small class="text-secondary">CRM · Gestión del Proceso Migratorio</small>
+                            <div class="brand-text">
+                                <h1>SGPM</h1>
+                                <p>
+                                    <i class="bi bi-shield-check"></i>
+                                    CRM · Gestión del Proceso Migratorio
+                                </p>
                             </div>
-                            <div class="earth-wrap ms-auto">
-                                <div class="earth" aria-label="Planeta girando"></div>
+                            <div class="globe-anim">
+                                <i class="bi bi-globe"></i>
                             </div>
-
                         </div>
 
-                        <h2 class="h4 mb-1">Bienvenido</h2>
-                        <p class="text-secondary mb-4">Ingresa con tus credenciales para continuar.</p>
+                        <div class="welcome-section">
+                            <h2>Bienvenido</h2>
+                            <p>Ingresa con tus credenciales para continuar.</p>
+                        </div>
 
                         {% if messages %}
                         {% for message in messages %}
@@ -44,43 +66,60 @@
                         {% endfor %}
                         {% endif %}
 
-                        <form method="post" action="">
+                        <form method="post" action="" class="login-form">
                             {% csrf_token %}
 
                             <div class="mb-3">
                                 <label for="email" class="form-label">Correo</label>
                                 <input type="email" class="form-control" id="email" name="email"
                                        value="{{ email|default:'' }}"
-                                       placeholder="asesor@empresa.com" autocomplete="email" required>
+                                       placeholder="asesor@empresa" autocomplete="email" required
+                                       style="color: var(--text-dark);">
+                                <style>
+                                    #email::placeholder,
+                                    #password::placeholder {
+                                        color: #94a3b8;
+                                        opacity: 0.6;
+                                    }
+                                </style>
                             </div>
 
                             <div class="mb-3">
                                 <label for="password" class="form-label">Contraseña</label>
                                 <input type="password" class="form-control" id="password" name="password"
-                                       placeholder="••••••••" autocomplete="current-password" required>
+                                       placeholder="••••••••" autocomplete="current-password" required
+                                       style="color: var(--text-dark);">
                             </div>
 
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="remember" name="remember">
-                                    <label class="form-check-label" for="remember">Recordarme</label>
-                                </div>
-                                <a href="#" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100 py-2">
+                            <button type="submit" class="btn btn-primary w-100" style="margin-top: 1rem;">
                                 Iniciar sesión
                             </button>
-
-                            <p class="text-center text-secondary mt-4 mb-0">
-                                ¿No tienes acceso? <a class="text-decoration-none" href="#">Contacta al
-                                administrador</a>
-                            </p>
                         </form>
 
+                        <div class="features-row">
+                            <div class="feature">
+                                <i class="bi bi-shield-check"></i>
+                                <span>Seguro</span>
+                            </div>
+                            <div class="feature">
+                                <i class="bi bi-speedometer2"></i>
+                                <span>Rápido</span>
+                            </div>
+                            <div class="feature">
+                                <i class="bi bi-people"></i>
+                                <span>Confiable</span>
+                            </div>
+                        </div>
+
                     </div>
-                    <div class="card-footer text-center text-secondary small bg-white border-0 pb-4">
-                        © {% now "Y" %} SGPM
+                    <div class="card-footer-section">
+                        <p>
+                            © {% now "Y" %} SGPM · Sistema de Gestión del Proceso Migratorio
+                        </p>
+                        <div class="copyright">
+                            <i class="bi bi-heart-fill"></i>
+                            <span>Hecho con dedicación</span>
+                        </div>
                     </div>
                 </div>
 

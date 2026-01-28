@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SGPM | Crear Tarea{% endblock %}
+{% block page_title %}Crear Nueva Tarea{% endblock %}
+{% block page_subtitle %}Asignar una nueva tarea a un asesor{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-content">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-heading"></i>
+                    Título *
+                </label>
+                <input type="text" name="titulo" class="form-control" required maxlength="200" placeholder="Ej: Revisar documentación del solicitante">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-flag"></i>
+                    Prioridad *
+                </label>
+                <select name="prioridad" class="form-control" required>
+                    <option value="">Seleccione una prioridad</option>
+                    {% for prioridad in prioridades %}
+                    <option value="{{ prioridad.value }}">{{ prioridad.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-user"></i>
+                    Asignar a Asesor
+                </label>
+                <select name="asesor_id" class="form-control">
+                    <option value="">Sin asignar</option>
+                    {% for asesor in asesores %}
+                    <option value="{{ asesor.id }}">{{ asesor.obtener_nombre_completo }} ({{ asesor.email_asesor }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-folder"></i>
+                    Solicitud Migratoria
+                </label>
+                <select name="solicitud_id" class="form-control">
+                    <option value="">Sin solicitud asociada</option>
+                    {% for solicitud in solicitudes %}
+                    <option value="{{ solicitud.codigo }}">{{ solicitud.codigo }} - {{ solicitud.estado_actual }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-calendar-times"></i>
+                    Fecha de Vencimiento
+                </label>
+                <input type="datetime-local" name="vencimiento" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-comment"></i>
+                    Comentario
+                </label>
+                <textarea name="comentario" class="form-control" rows="3" placeholder="Comentarios adicionales sobre la tarea"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-toggle-on"></i>
+                    Estado *
+                </label>
+                <select name="estado" class="form-control" required>
+                    {% for estado in estados %}
+                    <option value="{{ estado.value }}" {% if estado.value == 'PENDIENTE' %}selected{% endif %}>{{ estado.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn-primary">
+                    <i class="fa-solid fa-check"></i>
+                    Crear Tarea
+                </button>
+                <a href="{% url 'tareas_listar' %}" class="btn-secondary">
+                    <i class="fa-solid fa-times"></i>
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
