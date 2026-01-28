@@ -29,7 +29,20 @@
                     Gestión de Solicitudes
                 </h4>
                 <div class="menu-grid">
-                    <a href="{% url 'listado' %}" class="menu-card {% if request.resolver_match.url_name == 'registro' %}active{% endif %}">
+                    <a href="{% url 'solicitud_registro' %}" class="menu-card {% if request.resolver_match.url_name == 'solicitud_registro' %}active{% endif %}">
+                        <div class="menu-card-icon green">
+                            <i class="fa-solid fa-file-circle-plus"></i>
+                        </div>
+                        <div class="menu-card-content">
+                            <h5>Registrar Nueva Solicitud</h5>
+                            <p>Crear una nueva solicitud migratoria para un solicitante</p>
+                        </div>
+                        <div class="menu-card-arrow">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'listado' %}" class="menu-card {% if request.resolver_match.url_name == 'listado' %}active{% endif %}">
                         <div class="menu-card-icon blue">
                             <i class="fa-solid fa-list-ul"></i>
                         </div>
@@ -75,6 +88,19 @@
                         <div class="menu-card-content">
                             <h5>Registro de Fechas Clave</h5>
                             <p>Gestionar fechas importantes de las solicitudes</p>
+                        </div>
+                        <div class="menu-card-arrow">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'solicitud_documentos_menu' %}" class="menu-card {% if request.resolver_match.url_name == 'solicitud_documentos_menu' %}active{% endif %}">
+                        <div class="menu-card-icon teal">
+                            <i class="fa-solid fa-file-circle-plus"></i>
+                        </div>
+                        <div class="menu-card-content">
+                            <h5>Documentos de Solicitud</h5>
+                            <p>Subir y gestionar documentos PDF asociados a solicitudes</p>
                         </div>
                         <div class="menu-card-arrow">
                             <i class="fa-solid fa-arrow-right"></i>

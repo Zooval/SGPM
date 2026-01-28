@@ -142,7 +142,36 @@
                             </tr>
                         </thead>
                         <tbody id="solicitudesTableBody">
-                            <!-- Los datos se cargarán dinámicamente con JavaScript -->
+                            {% for solicitud in solicitudes %}
+                            <tr>
+                                <td>{{ solicitud.codigo }}</td>
+                                <td>
+                                    {{ solicitud.solicitante_cedula|default:"-" }}
+                                </td>
+                                <td>{{ solicitud.tipo_servicio|default:"-" }}</td>
+                                <td>{{ solicitud.estado_actual }}</td>
+                                <td>{{ solicitud.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% if solicitud.fecha_expiracion %}
+                                        {{ solicitud.fecha_expiracion|date:"d/m/Y" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'detalle' %}?codigo={{ solicitud.codigo }}" class="btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.85rem;">
+                                        <i class="fa-solid fa-eye"></i>
+                                        Ver
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+                                    No hay solicitudes registradas.
+                                </td>
+                            </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>

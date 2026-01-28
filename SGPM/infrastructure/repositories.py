@@ -63,7 +63,7 @@ class DjangoSolicitanteRepository(SolicitanteRepository):
             apellidos=model.apellidos,
             correo=model.correo,
             telefono=model.telefono,
-            fechaNacimiento=model.fecha_nacimiento,
+            fecha_nacimiento=model.fecha_nacimiento,
         )
 
     def _to_model(self, entity: SolicitanteEntity) -> SolicitanteModel:
@@ -180,7 +180,7 @@ class DjangoSolicitudMigratoriaRepository(SolicitudMigratoriaRepository):
                 apellidos=model.solicitante.apellidos,
                 correo=model.solicitante.correo,
                 telefono=model.solicitante.telefono,
-                fechaNacimiento=model.solicitante.fecha_nacimiento,
+                fecha_nacimiento=model.solicitante.fecha_nacimiento,
             )
 
         # Convertir asesor si existe

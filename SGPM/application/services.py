@@ -127,7 +127,7 @@ class SolicitanteService:
             apellidos=dto.apellidos,
             correo=dto.correo,
             telefono=dto.telefono,
-            fechaNacimiento=dto.fecha_nacimiento,
+            fecha_nacimiento=dto.fecha_nacimiento,
         )
 
         resultado = self._repo.guardar(solicitante)
@@ -152,7 +152,7 @@ class SolicitanteService:
             apellidos=solicitante._apellidos,
             correo=correo,
             telefono=telefono,
-            fechaNacimiento=solicitante._fecha_nacimiento,
+            fecha_nacimiento=solicitante._fecha_nacimiento,
         )
 
         resultado = self._repo.guardar(solicitante_actualizado)
@@ -396,6 +396,38 @@ class DocumentoService:
 
         resultado = self._repo.guardar(documento, dto.solicitud_codigo or "")
         return self._to_dto(resultado)
+
+    def actualizar_documento(
+        self,
+        id_documento: str,
+        solicitud_codigo: str,
+        *,
+        estado: Optional[str] = None,
+        fecha_expiracion: Optional[date] = None,
+        observacion: Optional[str] = None,
+    ) -> DocumentoDTO:
+        """Actualiza campos de un documento existente."""
+        documento = self._repo.obtener_por_id(id_documento)
+        if documento is None:
+            raise DocumentoInvalidoError(f"No existe documento con ID {id_documento}")
+
+        if estado is not None:
+            from SGPM.domain.enums import EstadoDocumento as _EstadoDocumento
+            documento._estado = _EstadoDocumento[estado]
+            documento.estado = documento._estado
+
+        if fecha_expiracion is not None:
+            documento._fecha_expiracion = fecha_expiracion
+
+        if observacion is not None:
+            documento._observacion = observacion
+
+        resultado = self._repo.guardar(documento, solicitud_codigo)
+        return self._to_dto(resultado)
+
+    def eliminar_documento(self, id_documento: str) -> bool:
+        """Elimina un documento por su ID."""
+        return self._repo.eliminar(id_documento)
 
     def aprobar_documento(self, id_documento: str) -> DocumentoDTO:
         """Aprueba un documento"""

@@ -224,6 +224,10 @@
                         <i class="fa-solid fa-arrow-left"></i>
                         Volver al Dashboard
                     </button>
+                    <button type="button" class="btn-secondary" onclick="abrirDocumentosSolicitud()">
+                        <i class="fa-solid fa-file-arrow-up"></i>
+                        Gestionar Documentos
+                    </button>
                     <button type="button" class="btn-primary" onclick="imprimirExpediente()">
                         <i class="fa-solid fa-print"></i>
                         Imprimir Expediente
@@ -235,5 +239,22 @@
 
         </div>
     </main>
+
+    <script>
+        function abrirDocumentosSolicitud() {
+            const codigoEl = document.getElementById('displayCodigo');
+            if (!codigoEl) {
+                alert('No se encontró el código de la solicitud.');
+                return;
+            }
+            const codigo = (codigoEl.textContent || '').trim();
+            if (!codigo) {
+                alert('Primero busca y selecciona un expediente para ver sus documentos.');
+                return;
+            }
+            const url = `/solicitud/${encodeURIComponent(codigo)}/documentos/`;
+            window.location.href = url;
+        }
+    </script>
 
 {% endblock %}

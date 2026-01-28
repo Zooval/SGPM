@@ -47,13 +47,13 @@
                         </div>
                     </a>
 
-                    <a href="{% url 'consultar-expediente' %}" class="menu-card {% if request.resolver_match.url_name == 'consultar-expediente' %}active{% endif %}">
+                    <a href="{% url 'solicitud_documentos_menu' %}" class="menu-card {% if request.resolver_match.url_name == 'solicitud_documentos_menu' %}active{% endif %}">
                         <div class="menu-card-icon purple">
-                            <i class="fa-solid fa-folder-open"></i>
+                            <i class="fa-solid fa-file-circle-question"></i>
                         </div>
                         <div class="menu-card-content">
-                            <h5>Consulta de Expediente</h5>
-                            <p>Ver y buscar expedientes de solicitantes</p>
+                            <h5>Consulta de Documentos</h5>
+                            <p>Buscar documentos PDF por código de solicitud</p>
                         </div>
                         <div class="menu-card-arrow">
                             <i class="fa-solid fa-arrow-right"></i>

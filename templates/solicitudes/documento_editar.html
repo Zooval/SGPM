@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}SGPM | Documentos{% endblock %}
+{% block page_title %}Documentos{% endblock %}
+{% block page_subtitle %}Editar documento {{ documento.id_documento }}{% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/formulario.css' %}">
+{% endblock %}
+
+{% block page_content %}
+<main class="main-content">
+    <header class="topbar">
+        <div class="topbar-title">
+            <h2>Editar Documento</h2>
+            <p>Actualiza el estado y la información del documento</p>
+        </div>
+        <div class="topbar-actions">
+            {% if codigo %}
+            <a href="{% url 'solicitud_documentos' codigo %}" class="btn-secondary">
+                <i class="fa-solid fa-arrow-left"></i>
+                Volver a Documentos
+            </a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="content-area">
+        <div class="form-card">
+            <div class="form-card-header">
+                <div class="form-card-icon">
+                    <i class="fa-solid fa-file-pen"></i>
+                </div>
+                <div>
+                    <h3>Documento {{ documento.id_documento }}</h3>
+                    <p>Tipo: {{ documento.tipo }} · Estado actual: {{ documento.estado }}</p>
+                </div>
+            </div>
+
+            <form method="post" class="registro-form">
+                {% csrf_token %}
+                <input type="hidden" name="codigo" value="{{ codigo }}">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-circle-dot"></i>
+                            Estado
+                        </label>
+                        <select name="estado" class="form-control">
+                            {% for e in estados %}
+                            <option value="{{ e.value }}" {% if documento.estado == e.value %}selected{% endif %}>
+                                {{ e.value }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-calendar-day"></i>
+                            Fecha de Expiración
+                        </label>
+                        <input
+                            type="date"
+                            name="fecha_expiracion"
+                            class="form-control"
+                            value="{% if documento.fecha_expiracion %}{{ documento.fecha_expiracion|date:'Y-m-d' }}{% endif %}"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label class="form-label">
+                            <i class="fa-solid fa-comment"></i>
+                            Observación
+                        </label>
+                        <textarea name="observacion" class="form-control" rows="3">{{ documento.observacion }}</textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fa-solid fa-save"></i>
+                        Guardar Cambios
+                        <span class="arrow">→</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+
+

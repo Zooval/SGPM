@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}SGPM | Documentos{% endblock %}
+{% block page_title %}Documentos{% endblock %}
+{% block page_subtitle %}Gestión de documentos de la solicitud {{ codigo }}{% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/formulario.css' %}">
+{% endblock %}
+
+{% block page_content %}
+<main class="main-content">
+    <header class="topbar">
+        <div class="topbar-title">
+            <h2>Documentos de la Solicitud {{ codigo }}</h2>
+            <p>Registre y visualice los documentos asociados a esta solicitud</p>
+        </div>
+        <div class="topbar-actions">
+            <a href="{% url 'detalle' %}?codigo={{ codigo }}" class="btn-secondary">
+                <i class="fa-solid fa-arrow-left"></i>
+                Volver al detalle
+            </a>
+        </div>
+    </header>
+
+    <div class="content-area">
+        <div class="form-card">
+            <div class="form-card-header">
+                <div class="form-card-icon">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                </div>
+                <div>
+                    <h3>Registrar Documento</h3>
+                    <p>Cargue un documento en formato PDF asociado a la solicitud {{ codigo }}</p>
+                </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="registro-form">
+                {% csrf_token %}
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-file-lines"></i>
+                            Tipo de Documento *
+                        </label>
+                        <select name="tipo" class="form-control" required>
+                            <option value="">Seleccione...</option>
+                            {% for tipo in tipos_documento %}
+                            <option value="{{ tipo.value }}">{{ tipo.value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-file-pdf"></i>
+                            Archivo PDF *
+                        </label>
+                        <input type="file" name="archivo" class="form-control" accept="application/pdf" required>
+                        <span class="field-help">
+                            Solo se permiten archivos PDF. Tamaño recomendado &lt; 10MB.
+                        </span>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label class="form-label">
+                            <i class="fa-solid fa-comment"></i>
+                            Observación
+                        </label>
+                        <textarea name="observacion" class="form-control" rows="3" placeholder="Descripción breve del documento..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fa-solid fa-upload"></i>
+                        Subir Documento
+                        <span class="arrow">→</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-content">
+                <h3 style="margin: 0 0 1rem 0;">
+                    <i class="fa-solid fa-folder-open"></i>
+                    Documentos Registrados
+                </h3>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: var(--bg-main); border-bottom: 2px solid var(--border-color);">
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600;">Tipo</th>
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600;">Estado</th>
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600;">Fecha Expiración</th>
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600;">Observación</th>
+                                <th style="padding: 0.75rem; text-align: center; font-weight: 600;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documentos %}
+                            <tr style="border-bottom: 1px solid var(--border-color);">
+                                <td style="padding: 0.75rem;">{{ doc.tipo }}</td>
+                                <td style="padding: 0.75rem;">{{ doc.estado }}</td>
+                                <td style="padding: 0.75rem;">
+                                    {% if doc.fecha_expiracion %}
+                                        {{ doc.fecha_expiracion|date:"d/m/Y" }}
+                                    {% else %}
+                                        <span style="color: var(--text-muted);">-</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 0.75rem;">{{ doc.observacion }}</td>
+                                <td style="padding: 0.75rem; text-align: center;">
+                                    <a href="{% url 'documento_editar' doc.id_documento %}?codigo={{ codigo }}" class="btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.85rem;">
+                                        <i class="fa-solid fa-pen"></i>
+                                        Editar
+                                    </a>
+                                    <form method="post" action="{% url 'documento_eliminar' doc.id_documento %}?codigo={{ codigo }}" style="display: inline;" onsubmit="return confirm('¿Eliminar este documento?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.85rem; background: #fee2e2; color: #dc2626; border: none;">
+                                            <i class="fa-solid fa-trash"></i>
+                                            Eliminar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
+                                    No hay documentos registrados para esta solicitud.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+

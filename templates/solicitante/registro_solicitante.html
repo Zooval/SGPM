@@ -43,7 +43,8 @@
                     </div>
                 </div>
 
-                <form id="registroForm" class="registro-form">
+                <form id="registroForm" class="registro-form" method="post">
+                    {% csrf_token %}
 
                     <!-- Sección: Datos Personales -->
                     <div class="form-section">
@@ -64,6 +65,7 @@
                                     id="cedula"
                                     name="cedula"
                                     placeholder="Ej: 1234567890"
+                                    value="{{ form_data.cedula|default:'' }}"
                                     required
                                 />
                             </div>
@@ -81,6 +83,7 @@
                                     id="nombres"
                                     name="nombres"
                                     placeholder="Ej: Juan Carlos"
+                                    value="{{ form_data.nombres|default:'' }}"
                                     required
                                 />
                             </div>
@@ -96,6 +99,7 @@
                                     id="apellidos"
                                     name="apellidos"
                                     placeholder="Ej: Pérez González"
+                                    value="{{ form_data.apellidos|default:'' }}"
                                     required
                                 />
                             </div>
@@ -113,6 +117,7 @@
                                     id="correo"
                                     name="correo"
                                     placeholder="Ej: solicitante@email.com"
+                                    value="{{ form_data.correo|default:'' }}"
                                     required
                                 />
                             </div>
@@ -128,6 +133,7 @@
                                     id="telefono"
                                     name="telefono"
                                     placeholder="Ej: +593 999999999"
+                                    value="{{ form_data.telefono|default:'' }}"
                                     required
                                 />
                             </div>
@@ -142,8 +148,9 @@
                                 <input
                                     type="date"
                                     class="form-control"
-                                    id="fechaNacimiento"
-                                    name="fechaNacimiento"
+                                    id="fecha_nacimiento"
+                                    name="fecha_nacimiento"
+                                    value="{{ form_data.fecha_nacimiento|default:'' }}"
                                     required
                                 />
                             </div>

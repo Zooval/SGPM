@@ -35,38 +35,31 @@
             <div class="search-section">
                 <div class="search-card">
                     <h4><i class="fa-solid fa-magnifying-glass"></i> Buscar Solicitante</h4>
-                    <p class="search-description">Ingrese el número de identificación o nombre del solicitante</p>
+                    <p class="search-description">Ingrese la cédula del solicitante para buscarlo y editar sus datos de contacto</p>
 
-                    <div class="search-form">
+                    <form method="get" class="search-form">
                         <div class="search-input-group">
                             <div class="form-group" style="flex: 1;">
                                 <label class="form-label">
                                     <i class="fa-solid fa-id-card"></i>
-                                    Número de Identificación
+                                    Cédula / Documento
                                 </label>
-                                <input type="text" class="form-control" id="searchId" placeholder="Ej: 1234567890">
-                            </div>
-
-                            <div class="form-group" style="flex: 1;">
-                                <label class="form-label">
-                                    <i class="fa-solid fa-user"></i>
-                                    Nombre Completo
-                                </label>
-                                <input type="text" class="form-control" id="searchName" placeholder="Ej: Juan Pérez">
+                                <input type="text" class="form-control" name="cedula" placeholder="Ej: 1234567890" value="{{ cedula_busqueda|default:'' }}">
                             </div>
                         </div>
 
-                        <button type="button" class="btn-primary" onclick="buscarSolicitante()">
+                        <button type="submit" class="btn-primary">
                             <i class="fa-solid fa-search"></i>
                             Buscar Solicitante
                             <span class="arrow">→</span>
                         </button>
-                    </div>
+                    </form>
                 </div>
             </div>
 
-            <!-- Sección de Datos Actuales (Oculta inicialmente) -->
-            <div class="data-section" id="dataSection" style="display: none;">
+            <!-- Sección de Datos Actuales (solo si hay resultado) -->
+            {% if solicitante %}
+            <div class="data-section" id="dataSection">
 
                 <!-- Header con información del solicitante -->
                 <div class="applicant-header">
@@ -74,9 +67,9 @@
                         <i class="fa-solid fa-user"></i>
                     </div>
                     <div class="applicant-info">
-                        <h3 id="applicantName">Juan Carlos Pérez García</h3>
+                        <h3 id="applicantName">{{ solicitante.nombre_completo }}</h3>
                         <div class="applicant-meta">
-                            <span><i class="fa-solid fa-id-card"></i> ID: <strong id="applicantId">1234567890</strong></span>
+                            <span><i class="fa-solid fa-id-card"></i> ID: <strong id="applicantId">{{ solicitante.cedula }}</strong></span>
                             <span><i class="fa-solid fa-calendar"></i> Registrado: <strong>15/01/2026</strong></span>
                             <span class="status-badge active"><i class="fa-solid fa-circle-check"></i> Activo</span>
                         </div>
@@ -90,7 +83,8 @@
                 </div>
 
                 <!-- Formulario de Actualización -->
-                <form id="updateForm" class="update-form">
+                <form id="updateForm" class="update-form" method="post">
+                    {% csrf_token %}
 
                     <!-- Datos Personales -->
                     <div class="form-section">
@@ -104,7 +98,7 @@
                                     <i class="fa-solid fa-signature"></i>
                                     Nombres
                                 </label>
-                                <input type="text" class="form-control" id="nombres" value="Juan Carlos" disabled>
+                                <input type="text" class="form-control" id="nombres" value="{{ solicitante.nombres }}" disabled>
                             </div>
 
                             <div class="form-group">
@@ -112,7 +106,7 @@
                                     <i class="fa-solid fa-signature"></i>
                                     Apellidos
                                 </label>
-                                <input type="text" class="form-control" id="apellidos" value="Pérez García" disabled>
+                                <input type="text" class="form-control" id="apellidos" value="{{ solicitante.apellidos }}" disabled>
                             </div>
                         </div>
 
@@ -122,7 +116,8 @@
                                     <i class="fa-solid fa-id-card"></i>
                                     Número de Identificación
                                 </label>
-                                <input type="text" class="form-control" id="identificacion" value="1234567890" disabled>
+                                <input type="text" class="form-control" id="identificacion" value="{{ solicitante.cedula }}" disabled>
+                                <input type="hidden" name="cedula" value="{{ solicitante.cedula }}">
                                 <small class="field-note">Este campo no se puede modificar</small>
                             </div>
 
@@ -143,7 +138,7 @@
                                     <i class="fa-solid fa-calendar-days"></i>
                                     Fecha de Nacimiento
                                 </label>
-                                <input type="date" class="form-control" id="fechaNacimiento" value="1990-05-15" disabled>
+                                <input type="date" class="form-control" id="fechaNacimiento" value="{{ solicitante.fecha_nacimiento|date:'Y-m-d' }}" disabled>
                             </div>
                         </div>
                     </div>
@@ -160,7 +155,7 @@
                                     <i class="fa-solid fa-envelope"></i>
                                     Correo Electrónico
                                 </label>
-                                <input type="email" class="form-control" id="email" value="juan.perez@email.com" disabled>
+                                <input type="email" class="form-control" id="email" name="correo" value="{{ solicitante.correo }}" >
                             </div>
 
                             <div class="form-group">
@@ -168,7 +163,7 @@
                                     <i class="fa-solid fa-phone"></i>
                                     Teléfono
                                 </label>
-                                <input type="tel" class="form-control" id="telefono" value="+593 99 123 4567" disabled>
+                                <input type="tel" class="form-control" id="telefono" name="telefono" value="{{ solicitante.telefono }}" >
                             </div>
                         </div>
 
@@ -178,7 +173,7 @@
                                     <i class="fa-solid fa-location-dot"></i>
                                     Dirección
                                 </label>
-                                <input type="text" class="form-control" id="direccion" value="Av. Principal 123 y Calle Secundaria" disabled>
+                                <input type="text" class="form-control" id="direccion" name="direccion" value="{{ solicitante.direccion|default:'' }}">
                             </div>
 
                             <div class="form-group">
@@ -241,73 +236,9 @@
                     </div>
 
                     <!-- Historial de Cambios -->
-                    <div class="form-section">
-                        <div class="section-header">
-                            <h5><i class="fa-solid fa-clock-rotate-left"></i> Registro de Cambios</h5>
-                        </div>
-
-                        <div class="changes-log">
-                            <div class="change-item">
-                                <div class="change-icon">
-                                    <i class="fa-solid fa-user-pen"></i>
-                                </div>
-                                <div class="change-content">
-                                    <div class="change-header">
-                                        <strong>Actualización de teléfono</strong>
-                                        <span class="change-date">22/01/2026 14:30</span>
-                                    </div>
-                                    <p class="change-detail">Campo modificado: Teléfono</p>
-                                    <p class="change-values">
-                                        <span class="old-value">+593 98 765 4321</span>
-                                        <i class="fa-solid fa-arrow-right"></i>
-                                        <span class="new-value">+593 99 123 4567</span>
-                                    </p>
-                                    <p class="change-user">Por: admin</p>
-                                </div>
-                            </div>
-
-                            <div class="change-item">
-                                <div class="change-icon">
-                                    <i class="fa-solid fa-location-dot"></i>
-                                </div>
-                                <div class="change-content">
-                                    <div class="change-header">
-                                        <strong>Actualización de dirección</strong>
-                                        <span class="change-date">18/01/2026 10:15</span>
-                                    </div>
-                                    <p class="change-detail">Campo modificado: Dirección</p>
-                                    <p class="change-values">
-                                        <span class="old-value">Calle Antigua 456</span>
-                                        <i class="fa-solid fa-arrow-right"></i>
-                                        <span class="new-value">Av. Principal 123 y Calle Secundaria</span>
-                                    </p>
-                                    <p class="change-user">Por: admin</p>
-                                </div>
-                            </div>
-
-                            <div class="change-item">
-                                <div class="change-icon">
-                                    <i class="fa-solid fa-plus-circle"></i>
-                                </div>
-                                <div class="change-content">
-                                    <div class="change-header">
-                                        <strong>Registro inicial</strong>
-                                        <span class="change-date">15/01/2026 09:00</span>
-                                    </div>
-                                    <p class="change-detail">Solicitante registrado en el sistema</p>
-                                    <p class="change-user">Por: admin</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Botones de Acción -->
                     <div class="form-actions">
-                        <button type="button" class="btn-cancel" onclick="cancelarEdicion()">
-                            <i class="fa-solid fa-xmark"></i>
-                            Cancelar
-                        </button>
-                        <button type="submit" class="btn-primary" id="saveBtn" disabled>
+                        <button type="submit" class="btn-primary" id="saveBtn">
                             <i class="fa-solid fa-floppy-disk"></i>
                             Guardar Cambios
                             <span class="arrow">→</span>
@@ -316,6 +247,46 @@
 
                 </form>
 
+            </div>
+            {% endif %}
+
+            <!-- Listado de solicitantes asociados -->
+            <div class="data-section" style="margin-top: 2rem;">
+                <div class="search-card">
+                    <h4><i class="fa-solid fa-users"></i> Solicitantes Registrados</h4>
+                    <p class="search-description">Listado rápido de solicitantes asociados al sistema</p>
+
+                    <div style="overflow-x: auto; margin-top: 1rem;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: var(--bg-main); border-bottom: 2px solid var(--border-color);">
+                                    <th style="padding: 0.5rem; text-align: left;">Cédula</th>
+                                    <th style="padding: 0.5rem; text-align: left;">Nombres</th>
+                                    <th style="padding: 0.5rem; text-align: left;">Apellidos</th>
+                                    <th style="padding: 0.5rem; text-align: left;">Correo</th>
+                                    <th style="padding: 0.5rem; text-align: left;">Teléfono</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in solicitantes_lista %}
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 0.5rem;">{{ s.cedula }}</td>
+                                    <td style="padding: 0.5rem;">{{ s.nombres }}</td>
+                                    <td style="padding: 0.5rem;">{{ s.apellidos }}</td>
+                                    <td style="padding: 0.5rem;">{{ s.correo }}</td>
+                                    <td style="padding: 0.5rem;">{{ s.telefono }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" style="padding: 0.75rem; text-align: center; color: var(--text-muted);">
+                                        No hay solicitantes registrados.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
         </div>

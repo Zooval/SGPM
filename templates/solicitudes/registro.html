@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}SGPM | Solicitudes{% endblock %}
+{% block page_title %}Solicitudes{% endblock %}
+{% block page_subtitle %}Registro de nueva solicitud{% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/formulario.css' %}">
+{% endblock %}
+
+{% block page_content %}
+<main class="main-content">
+    <header class="topbar">
+        <div class="topbar-title">
+            <h2>Registro de Solicitud</h2>
+            <p>Crear una nueva solicitud migratoria</p>
+        </div>
+        <div class="topbar-actions">
+            <a href="{% url 'solicitud' %}" class="btn-secondary">
+                <i class="fa-solid fa-arrow-left"></i>
+                Volver al menú de solicitudes
+            </a>
+        </div>
+    </header>
+
+    <div class="content-area">
+        <div class="form-card">
+            <div class="form-card-header">
+                <div class="form-card-icon">
+                    <i class="fa-solid fa-file-circle-plus"></i>
+                </div>
+                <div>
+                    <h3>Nueva Solicitud Migratoria</h3>
+                    <p>Complete la información básica de la solicitud</p>
+                </div>
+            </div>
+
+            <form method="post" class="registro-form">
+                {% csrf_token %}
+
+                <div class="form-section">
+                    <div class="section-header">
+                        <i class="fa-solid fa-hashtag"></i>
+                        <h4>Datos de la Solicitud</h4>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fa-solid fa-hashtag"></i>
+                                Código de Solicitud *
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="codigo"
+                                placeholder="Ej: SOL-2026-0001"
+                                value="{{ form_data.codigo|default:'' }}"
+                                required
+                            />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fa-solid fa-passport"></i>
+                                Tipo de Servicio *
+                            </label>
+                            <select class="form-control" name="tipo_servicio" required>
+                                <option value="">Seleccione...</option>
+                                <option value="VISA_TURISMO" {% if form_data.tipo_servicio == 'VISA_TURISMO' %}selected{% endif %}>Visa de Turismo</option>
+                                <option value="VISA_TRABAJO" {% if form_data.tipo_servicio == 'VISA_TRABAJO' %}selected{% endif %}>Visa de Trabajo</option>
+                                <option value="ESTUDIOS" {% if form_data.tipo_servicio == 'ESTUDIOS' %}selected{% endif %}>Estudios</option>
+                                <option value="RESIDENCIA" {% if form_data.tipo_servicio == 'RESIDENCIA' %}selected{% endif %}>Residencia</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fa-solid fa-id-card"></i>
+                                Cédula del Solicitante (opcional)
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="solicitante_cedula"
+                                placeholder="Ej: 1234567890"
+                                value="{{ form_data.solicitante_cedula|default:'' }}"
+                            />
+                            <span class="field-help">
+                                Si ya registraste al solicitante, ingresa su cédula para asociar la solicitud.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="window.history.back()">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        Crear Solicitud
+                        <span class="arrow">→</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+
+

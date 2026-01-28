@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}SGPM | Solicitudes{% endblock %}
+{% block page_title %}Solicitudes{% endblock %}
+{% block page_subtitle %}Gestión de documentos de solicitudes{% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/formulario.css' %}">
+{% endblock %}
+
+{% block page_content %}
+<main class="main-content">
+    <header class="topbar">
+        <div class="topbar-title">
+            <h2>Gestión de Documentos</h2>
+            <p>Busca una solicitud por código para gestionar sus documentos</p>
+        </div>
+    </header>
+
+    <div class="content-area">
+        <div class="form-card">
+            <div class="form-card-header">
+                <div class="form-card-icon">
+                    <i class="fa-solid fa-file-circle-plus"></i>
+                </div>
+                <div>
+                    <h3>Seleccionar Solicitud</h3>
+                    <p>Ingresa el código de la solicitud para ver y cargar documentos</p>
+                </div>
+            </div>
+
+            <form method="post" class="registro-form">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-hashtag"></i>
+                            Código de Solicitud
+                        </label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            name="codigo"
+                            placeholder="Ej: SOL-2026-0001"
+                            value="{{ codigo|default:'' }}"
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fa-solid fa-folder-open"></i>
+                        Gestionar Documentos
+                        <span class="arrow">→</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+
+

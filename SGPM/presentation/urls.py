@@ -3,6 +3,7 @@ from .views import *
 from .views.solicitante import *
 from .views.solicitud import *
 from .views.dashboard import dashboard_view
+from .views.documento import gestionar_documentos_view, editar_documento_view, eliminar_documento_view
 
 urlpatterns = [
     path("login/", login_view, name="login"),
@@ -17,10 +18,15 @@ urlpatterns = [
     path("consultar/", consulta_expedientes_view, name="consultar-expediente"),
 
     path ("solicitud", solicitud_view, name="solicitud"),
+    path("solicitud/registro/", registro_solicitud_view, name="solicitud_registro"),
     path("solicitud/listado/", listado_view, name="listado"),
     path("solicitud/detalle", detalle_view, name="detalle"),
     path("solicitud/estado/", cambio_estado_view, name="cambio-estado"),
     path("solicitud/gestion-fechas/", gestion_fechas_view, name="gestion-fechas"),
+    path("solicitud/documentos/", documentos_menu_view, name="solicitud_documentos_menu"),
+    path("solicitud/<str:codigo>/documentos/", gestionar_documentos_view, name="solicitud_documentos"),
+    path("solicitud/documentos/<str:id_documento>/editar/", editar_documento_view, name="documento_editar"),
+    path("solicitud/documentos/<str:id_documento>/eliminar/", eliminar_documento_view, name="documento_eliminar"),
 
 
     path("", login_view, name="home"),  # Redirigir raíz a login

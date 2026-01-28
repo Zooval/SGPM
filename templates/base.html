@@ -41,7 +41,7 @@
 
             {# Si es SUPERVISOR: solo mostrar Tareas con todas las opciones #}
             {% if request.session.asesor_rol == 'SUPERVISOR' %}
-                <a href="{% url 'tareas_listar' %}" class="nav-item {% if 'tarea' in request.resolver_match.url_name %}active{% endif %}">
+                <a href="{% url 'tareas_listar' %}" class="nav-item {% if request.resolver_match.url_name == 'tareas_listar' or request.resolver_match.url_name == 'tareas_editar' or request.resolver_match.url_name == 'tareas_eliminar' %}active{% endif %}">
                     <i class="fa-solid fa-tasks"></i>
                     <span>Listar Tareas</span>
                 </a>
@@ -55,11 +55,11 @@
                 </a>
             {% else %}
                 {# Si es ASESOR u otro rol: mostrar todos los módulos pero Tareas solo listar #}
-                <a href="{% url 'solicitante' %}" class="nav-item {% if request.resolver_match.url_name == 'solicitante' %}active{% endif %}">
+                <a href="{% url 'solicitante' %}" class="nav-item {% if request.resolver_match.url_name == 'solicitante' or request.resolver_match.url_name == 'registro' or request.resolver_match.url_name == 'actualizar' or request.resolver_match.url_name == 'consultar-expediente' %}active{% endif %}">
                     <i class="fa-solid fa-users"></i>
                     <span>Solicitante</span>
                 </a>
-                <a href="{% url 'solicitud' %}" class="nav-item">
+                <a href="{% url 'solicitud' %}" class="nav-item {% if 'solicitud' in request.resolver_match.url_name or 'documento' in request.resolver_match.url_name %}active{% endif %}">
                     <i class="fa-solid fa-folder-open"></i>
                     <span>Expedientes</span>
                 </a>
@@ -67,7 +67,7 @@
                     <i class="fa-solid fa-tasks"></i>
                     <span>Tareas</span>
                 </a>
-                <a href="{% url 'citas_listar' %}" class="nav-item {% if 'cita' in request.resolver_match.url_name %}active{% endif %}">
+                <a href="{% url 'citas_listar' %}" class="nav-item {% if request.resolver_match.url_name == 'citas_listar' or request.resolver_match.url_name == 'citas_crear' or request.resolver_match.url_name == 'citas_reprogramar' %}active{% endif %}">
                     <i class="fa-solid fa-calendar-days"></i>
                     <span>Citas</span>
                 </a>
