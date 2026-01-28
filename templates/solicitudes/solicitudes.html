@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}SGPM | Clientes{% endblock %} 
+{% block page_title %}Solicitudes{% endblock %}
+{% block page_subtitle %}Gestión de solicitudes {% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+        <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+{% endblock %}
+
+{% block page_content %}
+    <div class="card">
+        <div class="card-content">
+            <h3>Solicitudes</h3>
+        </div>
+    </div>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div class="topbar-title">
+                <h2>Gestión de Solicitudes</h2>
+                <p>Administra y consulta las solicitudes migratorias</p>
+            </div>
+        </header>
+
+
+        <div class="content-area">
+            <!-- Menu Section -->
+            <div class="menu-section">
+                <h4 class="menu-title">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    Gestión de Solicitudes
+                </h4>
+                <div class="menu-grid">
+                    <a href="{% url 'listado' %}" class="menu-card {% if request.resolver_match.url_name == 'registro' %}active{% endif %}">
+                        <div class="menu-card-icon blue">
+                            <i class="fa-solid fa-list-ul"></i>
+                        </div>
+                        <div class="menu-card-content">
+                            <h5>Listado de Solicitudes</h5>
+                            <p>Ver todas las solicitudes registradas en el sistema</p>
+                        </div>
+                        <div class="menu-card-arrow">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </a>
+
+                    <a href="detalle_solicitud.html" class="menu-card">
+                        <div class="menu-card-icon green">
+                            <i class="fa-solid fa-file-invoice"></i>
+                        </div>
+                        <div class="menu-card-content">
+                            <h5>Detalle de Solicitud</h5>
+                            <p>Consultar información completa de una solicitud</p>
+                        </div>
+                        <div class="menu-card-arrow">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </a>
+
+                    <a href="cambio_estado.html" class="menu-card">
+                        <div class="menu-card-icon purple">
+                            <i class="fa-solid fa-exchange-alt"></i>
+                        </div>
+                        <div class="menu-card-content">
+                            <h5>Cambio de Estado</h5>
+                            <p>Actualizar el estado de las solicitudes</p>
+                        </div>
+                        <div class="menu-card-arrow">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </a>
+
+                    <a href="fechas_clave.html" class="menu-card">
+                        <div class="menu-card-icon orange">
+                            <i class="fa-solid fa-calendar-check"></i>
+                        </div>
+                        <div class="menu-card-content">
+                            <h5>Registro de Fechas Clave</h5>
+                            <p>Gestionar fechas importantes de las solicitudes</p>
+                        </div>
+                        <div class="menu-card-arrow">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Stats Section -->
+            <div class="stats-section">
+                <h4 class="menu-title">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    Estadísticas Rápidas
+                </h4>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fa-solid fa-file-lines"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h4>Total Solicitudes</h4>
+                            <div class="value">248</div>
+                            <div class="trend up">
+                                <i class="fa-solid fa-arrow-up"></i>
+                                <span>12% más que el mes anterior</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fa-solid fa-check-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h4>Aprobadas</h4>
+                            <div class="value">186</div>
+                            <div class="trend up">
+                                <i class="fa-solid fa-arrow-up"></i>
+                                <span>8% más que el mes anterior</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h4>En Proceso</h4>
+                            <div class="value">45</div>
+                            <div class="trend">
+                                <i class="fa-solid fa-minus"></i>
+                                <span>Sin cambios</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fa-solid fa-calendar-day"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h4>Pendientes Hoy</h4>
+                            <div class="value">17</div>
+                            <div class="trend down">
+                                <i class="fa-solid fa-arrow-down"></i>
+                                <span>3 menos que ayer</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+{% endblock %}
