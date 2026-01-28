@@ -1,11 +1,19 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+from django.core.checks import messages
+from django.shortcuts import render, redirect
 
-
-@login_required
 def dashboard_view(request):
-    """Vista del dashboard principal del CRM."""
+    """
+    Vista del dashboard (requiere autenticación).
+    """
+    # Verificar autenticación
+    if not request.session.get('asesor_email'):
+        messages.warning(request, 'Debes iniciar sesión para acceder.')
+        return redirect('login')
+
     context = {
-        'user': request.user,
+        'asesor_nombre': request.session.get('asesor_nombre'),
+        'asesor_email': request.session.get('asesor_email'),
+        'asesor_rol': request.session.get('asesor_rol'),
     }
+
     return render(request, 'dashboard.html', context)
