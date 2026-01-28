@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}SGPM | Clientes{% endblock %} 
+{% block page_title %}Solicitantes{% endblock %}
+{% block page_subtitle %}Gestión de solicitantes {% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+        <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+{% endblock %}
+
+{% block page_content %}
+
+    <!-- Menu Section -->
+            <div class="menu-section">
+                <div class="card-content">
+                    <h4 class="menu-title">
+                    <i class="fa-solid fa-list-check"></i>
+                    Opciones Principales
+                </h4>
+                </div>
+
+                <div class="menu-grid">
+                    <a href="{% url 'registro' %}" class="menu-card {% if request.resolver_match.url_name == 'registro' %}active{% endif %}">
+                        <div class="menu-card-icon blue">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </div>
+                        <div class="menu-card-content">
+                            <h5>Registro Solicitante</h5>
+                            <p>Registrar un nuevo solicitante en el sistema</p>
+                        </div>
+                        <div class="menu-card-arrow">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'actualizar' %}" class="menu-card {% if request.resolver_match.url_name == 'actualizar' %}active{% endif %}">
+                        <div class="menu-card-icon green">
+                            <i class="fa-solid fa-user-pen"></i>
+                        </div>
+                        <div class="menu-card-content">
+                            <h5>Actualización de Datos</h5>
+                            <p>Modificar información de solicitantes existentes</p>
+                        </div>
+                        <div class="menu-card-arrow">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'consultar-expediente' %}" class="menu-card {% if request.resolver_match.url_name == 'consultar-expediente' %}active{% endif %}">
+                        <div class="menu-card-icon purple">
+                            <i class="fa-solid fa-folder-open"></i>
+                        </div>
+                        <div class="menu-card-content">
+                            <h5>Consulta de Expediente</h5>
+                            <p>Ver y buscar expedientes de solicitantes</p>
+                        </div>
+                        <div class="menu-card-arrow">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+{% endblock %}

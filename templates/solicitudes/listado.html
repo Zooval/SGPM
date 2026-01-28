@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}SGPM | Clientes{% endblock %} 
+{% block page_title %}Solicitudes{% endblock %}
+{% block page_subtitle %}Gestión de solicitudes {% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+        <link rel="stylesheet" href="{% static 'css/formulario.css' %}">
+        <link rel="stylesheet" href="{% static 'css/listado.css' %}">
+{% endblock %}
+
+{% block page_content %}
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-title">
+                <h2>Consulta de Solicitudes</h2>
+                <p>Visualice y gestione las solicitudes migratorias</p>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+
+            <!-- Filters Card -->
+            <div class="filters-card">
+                <div class="section-header" style="margin-bottom: var(--spacing-md);">
+                    <i class="fa-solid fa-filter"></i>
+                    <h4>Filtros de Búsqueda</h4>
+                </div>
+
+                <div class="filters-row">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            Buscar
+                        </label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="searchInput"
+                            placeholder="Código, nombre o cédula..."
+                            oninput="filtrarSolicitudes()"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-circle-dot"></i>
+                            Estado
+                        </label>
+                        <select class="form-control" id="estadoFilter" onchange="filtrarSolicitudes()">
+                            <option value="">Todos los estados</option>
+                            <option value="PENDIENTE">Pendiente</option>
+                            <option value="EN_PROCESO">En Proceso</option>
+                            <option value="EN_REVISION">En Revisión</option>
+                            <option value="APROBADA">Aprobada</option>
+                            <option value="RECHAZADA">Rechazada</option>
+                            <option value="COMPLETADA">Completada</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-passport"></i>
+                            Tipo de Servicio
+                        </label>
+                        <select class="form-control" id="tipoServicioFilter" onchange="filtrarSolicitudes()">
+                            <option value="">Todos los servicios</option>
+                            <option value="TURISTA">Visa de Turista</option>
+                            <option value="TRABAJO">Visa de Trabajo</option>
+                            <option value="ESTUDIANTE">Visa de Estudiante</option>
+                            <option value="RESIDENCIA">Residencia Permanente</option>
+                            <option value="FAMILIAR">Reunificación Familiar</option>
+                            <option value="REFUGIO">Solicitud de Refugio</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-calendar-range"></i>
+                            Fecha Desde
+                        </label>
+                        <input
+                            type="date"
+                            class="form-control"
+                            id="fechaDesde"
+                            onchange="filtrarSolicitudes()"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fa-solid fa-calendar-range"></i>
+                            Fecha Hasta
+                        </label>
+                        <input
+                            type="date"
+                            class="form-control"
+                            id="fechaHasta"
+                            onchange="filtrarSolicitudes()"
+                        />
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: var(--spacing-sm); justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="limpiarFiltros()">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        Limpiar Filtros
+                    </button>
+                    <button class="btn-primary" onclick="exportarDatos()">
+                        <i class="fa-solid fa-file-export"></i>
+                        Exportar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="table-card">
+                <div class="table-header">
+                    <h3>
+                        <i class="fa-solid fa-list"></i>
+                        Lista de Solicitudes
+                    </h3>
+                    <span class="results-count" id="resultsCount">0 solicitudes</span>
+                </div>
+
+                <div class="table-container">
+                    <table class="solicitudes-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Cliente / Solicitante</th>
+                                <th>Tipo de Servicio</th>
+                                <th>Estado</th>
+                                <th>Fecha Creación</th>
+                                <th>Última Actualización</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="solicitudesTableBody">
+                            <!-- Los datos se cargarán dinámicamente con JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <i class="fa-solid fa-inbox"></i>
+                    <h4>No se encontraron solicitudes</h4>
+                    <p>No hay solicitudes que coincidan con los filtros aplicados</p>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination" id="pagination">
+                    <button onclick="cambiarPagina(-1)" id="prevBtn">
+                        <i class="fa-solid fa-chevron-left"></i>
+                        Anterior
+                    </button>
+                    <span class="page-info" id="pageInfo">Página 1 de 1</span>
+                    <button onclick="cambiarPagina(1)" id="nextBtn">
+                        Siguiente
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+{% endblock %}

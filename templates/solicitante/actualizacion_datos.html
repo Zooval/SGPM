@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+
+{% block title %}SGPM | Clientes{% endblock %}
+{% block page_title %}Solicitantes{% endblock %}
+{% block page_subtitle %}Gestión de solicitantes {% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+        <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+{% endblock %}
+
+{% block page_content %}
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="topbar-title">
+                <h2>Actualización de Datos</h2>
+                <p>Modificar información del solicitante</p>
+            </div>
+            <div class="topbar-actions">
+                <a href="{% url 'solicitante' %}" class="btn-secondary {% if request.resolver_match.url_name == 'solicitante' %}active{% endif %}">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Volver al Inicio
+                </a>
+            </div>
+        </header>
+
+        <!-- CONTENT AREA -->
+        <div class="content-area">
+
+            <!-- Sección de Búsqueda -->
+            <div class="search-section">
+                <div class="search-card">
+                    <h4><i class="fa-solid fa-magnifying-glass"></i> Buscar Solicitante</h4>
+                    <p class="search-description">Ingrese el número de identificación o nombre del solicitante</p>
+
+                    <div class="search-form">
+                        <div class="search-input-group">
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-id-card"></i>
+                                    Número de Identificación
+                                </label>
+                                <input type="text" class="form-control" id="searchId" placeholder="Ej: 1234567890">
+                            </div>
+
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-user"></i>
+                                    Nombre Completo
+                                </label>
+                                <input type="text" class="form-control" id="searchName" placeholder="Ej: Juan Pérez">
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-primary" onclick="buscarSolicitante()">
+                            <i class="fa-solid fa-search"></i>
+                            Buscar Solicitante
+                            <span class="arrow">→</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Datos Actuales (Oculta inicialmente) -->
+            <div class="data-section" id="dataSection" style="display: none;">
+
+                <!-- Header con información del solicitante -->
+                <div class="applicant-header">
+                    <div class="applicant-avatar">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div class="applicant-info">
+                        <h3 id="applicantName">Juan Carlos Pérez García</h3>
+                        <div class="applicant-meta">
+                            <span><i class="fa-solid fa-id-card"></i> ID: <strong id="applicantId">1234567890</strong></span>
+                            <span><i class="fa-solid fa-calendar"></i> Registrado: <strong>15/01/2026</strong></span>
+                            <span class="status-badge active"><i class="fa-solid fa-circle-check"></i> Activo</span>
+                        </div>
+                    </div>
+                    <div class="applicant-actions">
+                        <button type="button" class="btn-edit" onclick="habilitarEdicion()">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            Habilitar Edición
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulario de Actualización -->
+                <form id="updateForm" class="update-form">
+
+                    <!-- Datos Personales -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h5><i class="fa-solid fa-user-circle"></i> Datos Personales</h5>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-signature"></i>
+                                    Nombres
+                                </label>
+                                <input type="text" class="form-control" id="nombres" value="Juan Carlos" disabled>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-signature"></i>
+                                    Apellidos
+                                </label>
+                                <input type="text" class="form-control" id="apellidos" value="Pérez García" disabled>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-id-card"></i>
+                                    Número de Identificación
+                                </label>
+                                <input type="text" class="form-control" id="identificacion" value="1234567890" disabled>
+                                <small class="field-note">Este campo no se puede modificar</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-venus-mars"></i>
+                                    Género
+                                </label>
+                                <select class="form-control" id="genero" disabled>
+                                    <option value="M" selected>Masculino</option>
+                                    <option value="F">Femenino</option>
+                                    <option value="O">Otro</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-calendar-days"></i>
+                                    Fecha de Nacimiento
+                                </label>
+                                <input type="date" class="form-control" id="fechaNacimiento" value="1990-05-15" disabled>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datos de Contacto -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h5><i class="fa-solid fa-address-book"></i> Datos de Contacto</h5>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-envelope"></i>
+                                    Correo Electrónico
+                                </label>
+                                <input type="email" class="form-control" id="email" value="juan.perez@email.com" disabled>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-phone"></i>
+                                    Teléfono
+                                </label>
+                                <input type="tel" class="form-control" id="telefono" value="+593 99 123 4567" disabled>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 2;">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    Dirección
+                                </label>
+                                <input type="text" class="form-control" id="direccion" value="Av. Principal 123 y Calle Secundaria" disabled>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-city"></i>
+                                    Ciudad
+                                </label>
+                                <input type="text" class="form-control" id="ciudad" value="Quito" disabled>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datos Migratorios -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h5><i class="fa-solid fa-passport"></i> Datos Migratorios</h5>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-flag"></i>
+                                    Nacionalidad
+                                </label>
+                                <select class="form-control" id="nacionalidad" disabled>
+                                    <option value="EC" selected>Ecuador</option>
+                                    <option value="VE">Venezuela</option>
+                                    <option value="CO">Colombia</option>
+                                    <option value="PE">Perú</option>
+                                    <option value="BR">Brasil</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-file-lines"></i>
+                                    Tipo de Solicitud
+                                </label>
+                                <select class="form-control" id="tipoSolicitud" disabled>
+                                    <option value="visa" selected>Visa</option>
+                                    <option value="residencia">Residencia</option>
+                                    <option value="refugio">Refugio</option>
+                                    <option value="asilo">Asilo</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    Estado de Solicitud
+                                </label>
+                                <select class="form-control" id="estadoSolicitud" disabled>
+                                    <option value="pendiente">Pendiente</option>
+                                    <option value="revision" selected>En Revisión</option>
+                                    <option value="aprobado">Aprobado</option>
+                                    <option value="rechazado">Rechazado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historial de Cambios -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h5><i class="fa-solid fa-clock-rotate-left"></i> Registro de Cambios</h5>
+                        </div>
+
+                        <div class="changes-log">
+                            <div class="change-item">
+                                <div class="change-icon">
+                                    <i class="fa-solid fa-user-pen"></i>
+                                </div>
+                                <div class="change-content">
+                                    <div class="change-header">
+                                        <strong>Actualización de teléfono</strong>
+                                        <span class="change-date">22/01/2026 14:30</span>
+                                    </div>
+                                    <p class="change-detail">Campo modificado: Teléfono</p>
+                                    <p class="change-values">
+                                        <span class="old-value">+593 98 765 4321</span>
+                                        <i class="fa-solid fa-arrow-right"></i>
+                                        <span class="new-value">+593 99 123 4567</span>
+                                    </p>
+                                    <p class="change-user">Por: admin</p>
+                                </div>
+                            </div>
+
+                            <div class="change-item">
+                                <div class="change-icon">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                </div>
+                                <div class="change-content">
+                                    <div class="change-header">
+                                        <strong>Actualización de dirección</strong>
+                                        <span class="change-date">18/01/2026 10:15</span>
+                                    </div>
+                                    <p class="change-detail">Campo modificado: Dirección</p>
+                                    <p class="change-values">
+                                        <span class="old-value">Calle Antigua 456</span>
+                                        <i class="fa-solid fa-arrow-right"></i>
+                                        <span class="new-value">Av. Principal 123 y Calle Secundaria</span>
+                                    </p>
+                                    <p class="change-user">Por: admin</p>
+                                </div>
+                            </div>
+
+                            <div class="change-item">
+                                <div class="change-icon">
+                                    <i class="fa-solid fa-plus-circle"></i>
+                                </div>
+                                <div class="change-content">
+                                    <div class="change-header">
+                                        <strong>Registro inicial</strong>
+                                        <span class="change-date">15/01/2026 09:00</span>
+                                    </div>
+                                    <p class="change-detail">Solicitante registrado en el sistema</p>
+                                    <p class="change-user">Por: admin</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" onclick="cancelarEdicion()">
+                            <i class="fa-solid fa-xmark"></i>
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn-primary" id="saveBtn" disabled>
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            Guardar Cambios
+                            <span class="arrow">→</span>
+                        </button>
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+    </main>
+
+{% endblock %}

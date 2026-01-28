@@ -38,7 +38,7 @@
                 <i class="fa-solid fa-house"></i>
                 <span>Dashboard</span>
             </a>
-            
+
             {# Si es SUPERVISOR: solo mostrar Tareas con todas las opciones #}
             {% if request.session.asesor_rol == 'SUPERVISOR' %}
                 <a href="{% url 'tareas_listar' %}" class="nav-item {% if 'tarea' in request.resolver_match.url_name %}active{% endif %}">
@@ -59,7 +59,7 @@
                     <i class="fa-solid fa-users"></i>
                     <span>Solicitante</span>
                 </a>
-                <a href="#" class="nav-item">
+                <a href="{% url 'solicitud' %}" class="nav-item">
                     <i class="fa-solid fa-folder-open"></i>
                     <span>Expedientes</span>
                 </a>
