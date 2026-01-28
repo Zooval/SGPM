@@ -18,10 +18,13 @@
 
     <!-- Menu Section -->
             <div class="menu-section">
-                <h4 class="menu-title">
+                <div class="card-content">
+                    <h4 class="menu-title">
                     <i class="fa-solid fa-list-check"></i>
                     Opciones Principales
                 </h4>
+                </div>
+
                 <div class="menu-grid">
                     <a href="{% url 'registro' %}" class="menu-card {% if request.resolver_match.url_name == 'registro' %}active{% endif %}">
                         <div class="menu-card-icon blue">

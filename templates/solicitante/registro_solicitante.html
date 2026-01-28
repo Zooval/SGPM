@@ -25,6 +25,12 @@
                 <h2>Registro de Solicitante</h2>
                 <p>Complete el formulario con los datos del solicitante</p>
             </div>
+            <div class="topbar-actions">
+                <a href="{% url 'solicitante' %}" class="btn-secondary {% if request.resolver_match.url_name == 'solicitante' %}active{% endif %}">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Volver al Inicio
+                </a>
+            </div>
         </header>
 
         <!-- Content Area -->
