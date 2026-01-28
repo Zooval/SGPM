@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}SGPM | Reprogramar Cita{% endblock %}
+{% block page_title %}Reprogramar Cita{% endblock %}
+{% block page_subtitle %}{{ cita.id_cita }}{% endblock %}
+
+{% block page_content %}
+<div class="card">
+    <div class="card-content">
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md);">
+            <strong>Información de la cita actual:</strong>
+            <ul style="margin: 0.5rem 0 0 0; padding-left: 1.5rem; color: var(--text-muted);">
+                <li>ID: {{ cita.id_cita }}</li>
+                <li>Tipo: {{ cita.tipo }}</li>
+                <li>Estado: {{ cita.estado }}</li>
+                <li>Fecha y Hora Actual: {{ cita.inicio|date:"d/m/Y H:i" }} - {{ cita.fin|date:"H:i" }}</li>
+                {% if cita.solicitud %}
+                <li>Solicitud: {{ cita.solicitud.codigo }}</li>
+                {% if cita.solicitud.solicitante %}
+                <li>Solicitante: {{ cita.solicitud.solicitante.obtener_nombre_completo }}</li>
+                {% endif %}
+                {% endif %}
+            </ul>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fa-solid fa-calendar-plus"></i>
+                        Nueva Fecha y Hora de Inicio *
+                    </label>
+                    <input type="datetime-local" name="nuevo_inicio" class="form-control" required 
+                           value="{{ cita.inicio|date:'Y-m-d\TH:i' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fa-solid fa-calendar-minus"></i>
+                        Nueva Fecha y Hora de Fin *
+                    </label>
+                    <input type="datetime-local" name="nuevo_fin" class="form-control" required
+                           value="{{ cita.fin|date:'Y-m-d\TH:i' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fa-solid fa-comment"></i>
+                    Observación (opcional)
+                </label>
+                <textarea name="observacion" class="form-control" rows="3" placeholder="Motivo de la reprogramación">{{ cita.observacion }}</textarea>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn-primary">
+                    <i class="fa-solid fa-save"></i>
+                    Reprogramar Cita
+                </button>
+                <a href="{% url 'citas_listar' %}" class="btn-secondary">
+                    <i class="fa-solid fa-times"></i>
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
