@@ -95,7 +95,13 @@
 
       
         <div class="content-area">
-            {% block page_content %}{% endblock %}
+            {% block page_content %}
+            <div class="card">
+                <div class="card-content">
+                    <h3>Solicitantes</h3>
+                </div>
+            </div>
+            {% endblock %}
         </div>
     </main>
     {% endif %}

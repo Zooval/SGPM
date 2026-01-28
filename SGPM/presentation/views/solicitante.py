@@ -12,3 +12,9 @@ def solicitante_view(request):
     }
     return render(request, 'solicitante.html', context)
 
+def registro_solicitante_view(request):
+    context = {
+        'page_title': 'registro solicitantes',
+    }
+    return render(request, 'registro_solicitante.html', context)
+
