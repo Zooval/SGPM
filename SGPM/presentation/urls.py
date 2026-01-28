@@ -2,7 +2,7 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from .views.login import login_view, logout_view
 from .views.dashboard import dashboard_view
-from .views.solicitante import solicitante_view, registro_solicitante_view, actualizar_datos_view
+from .views.solicitante import *
 
 urlpatterns = [
     path("login/", login_view, name="login"),
@@ -12,5 +12,6 @@ urlpatterns = [
     path("registro/", registro_solicitante_view, name="registro"),
 
     path("actualizar/", actualizar_datos_view, name="actualizar"),
+    path("consultar/", consulta_expedientes_view, name="consultar-expediente"),
     path("", login_view, name="home"),  # Redirigir raíz a login
 ]

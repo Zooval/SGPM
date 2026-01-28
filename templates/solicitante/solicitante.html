@@ -49,7 +49,7 @@
                         </div>
                     </a>
 
-                    <a href="consulta_expediente.html" class="menu-card">
+                    <a href="{% url 'consultar-expediente' %}" class="menu-card {% if request.resolver_match.url_name == 'consultar-expediente' %}active{% endif %}">
                         <div class="menu-card-icon purple">
                             <i class="fa-solid fa-folder-open"></i>
                         </div>

@@ -19,9 +19,16 @@ def registro_solicitante_view(request):
     }
     return render(request, 'solicitante/registro_solicitante.html', context)
 
+@login_required
 def actualizar_datos_view(request):
     context = {
         'page_title': 'actualizar datos',
     }
     return render(request, 'solicitante/actualizacion_datos.html', context)
 
+@login_required
+def consulta_expedientes_view(request):
+    context = {
+        'page_title': 'consulta expedientes',
+    }
+    return render(request, 'solicitante/consulta_expediente.html', context)
