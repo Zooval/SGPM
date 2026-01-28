@@ -23,7 +23,7 @@
                     Opciones Principales
                 </h4>
                 <div class="menu-grid">
-                    <a href="{% url 'dashboard' %}" class="menu-card {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <a href="{% url 'registro' %}" class="menu-card {% if request.resolver_match.url_name == 'registro' %}active{% endif %}">
                         <div class="menu-card-icon blue">
                             <i class="fa-solid fa-user-plus"></i>
                         </div>
@@ -36,7 +36,7 @@
                         </div>
                     </a>
 
-                    <a href="actualizacion_datos.html" class="menu-card">
+                    <a href="{% url 'actualizar' %}" class="menu-card {% if request.resolver_match.url_name == 'actualizar' %}active{% endif %}">
                         <div class="menu-card-icon green">
                             <i class="fa-solid fa-user-pen"></i>
                         </div>

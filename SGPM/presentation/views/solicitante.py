@@ -10,12 +10,18 @@ def solicitante_view(request):
     context = {
         'page_title': 'solicitantes',
     }
-    return render(request, 'solicitante.html', context)
+    return render(request, 'solicitante/solicitante.html', context)
 
 @login_required
 def registro_solicitante_view(request):
     context = {
         'page_title': 'registro solicitantes',
     }
-    return render(request, 'registro_solicitante.html', context)
+    return render(request, 'solicitante/registro_solicitante.html', context)
+
+def actualizar_datos_view(request):
+    context = {
+        'page_title': 'actualizar datos',
+    }
+    return render(request, 'solicitante/actualizacion_datos.html', context)
 
