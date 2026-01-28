@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django import forms
+from django.contrib.auth.hashers import make_password
 from SGPM.models import (
     Solicitante,
     Asesor,
@@ -26,12 +28,68 @@ class SolicitanteAdmin(admin.ModelAdmin):
 # ========================================
 # Admin: Asesor
 # ========================================
+class AsesorCreationForm(forms.ModelForm):
+    """Formulario para crear un nuevo asesor con contraseña en texto plano"""
+    password = forms.CharField(
+        label='Contraseña',
+        widget=forms.PasswordInput,
+        help_text='Ingrese la contraseña en texto plano. Se hasheará automáticamente.'
+    )
+
+    class Meta:
+        model = Asesor
+        fields = ('nombres', 'apellidos', 'email_asesor', 'rol', 'activo')
+
+    def save(self, commit=True):
+        asesor = super().save(commit=False)
+        asesor.password_hash = make_password(self.cleaned_data['password'])
+        if commit:
+            asesor.save()
+        return asesor
+
+
+class AsesorChangeForm(forms.ModelForm):
+    """Formulario para editar un asesor existente"""
+    password = forms.CharField(
+        label='Nueva Contraseña',
+        widget=forms.PasswordInput,
+        required=False,
+        help_text='Deje en blanco para mantener la contraseña actual. Ingrese una nueva para cambiarla.'
+    )
+
+    class Meta:
+        model = Asesor
+        fields = ('nombres', 'apellidos', 'email_asesor', 'rol', 'activo')
+
+    def save(self, commit=True):
+        asesor = super().save(commit=False)
+        password = self.cleaned_data.get('password')
+        if password:
+            asesor.password_hash = make_password(password)
+        if commit:
+            asesor.save()
+        return asesor
+
+
 @admin.register(Asesor)
 class AsesorAdmin(admin.ModelAdmin):
     list_display = ('nombres', 'apellidos', 'email_asesor', 'rol', 'activo', 'fecha_creacion')
     search_fields = ('nombres', 'apellidos', 'email_asesor')
     list_filter = ('rol', 'activo', 'fecha_creacion')
     ordering = ('-fecha_creacion',)
+
+    # Excluir password_hash de los formularios
+    exclude = ('password_hash',)
+
+    def get_form(self, request, obj=None, **kwargs):
+        """Usar formulario de creación o edición según corresponda"""
+        if obj is None:
+            # Creando nuevo asesor
+            kwargs['form'] = AsesorCreationForm
+        else:
+            # Editando asesor existente
+            kwargs['form'] = AsesorChangeForm
+        return super().get_form(request, obj, **kwargs)
 
 
 # ========================================

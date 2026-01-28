@@ -3,11 +3,11 @@ Servicio de autenticación para asesores del sistema SGPM.
 """
 from __future__ import annotations
 
-import hashlib
-import secrets
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional
 from dataclasses import dataclass
+
+from django.contrib.auth.hashers import make_password, check_password
 
 from SGPM.infrastructure.models import Asesor
 
@@ -44,37 +44,22 @@ class AuthenticationService:
     """
     Servicio de autenticación para asesores.
     Maneja login, logout y verificación de sesión.
+    Usa el sistema de hashing de Django (PBKDF2 por defecto).
     """
 
     @staticmethod
-    def _hash_password(password: str, salt: str = None) -> tuple[str, str]:
+    def _hash_password(password: str) -> str:
         """
-        Genera un hash seguro de la contraseña.
-        Retorna (hash, salt)
+        Genera un hash seguro de la contraseña usando Django.
         """
-        if salt is None:
-            salt = secrets.token_hex(16)
-
-        # Usar SHA-256 con salt
-        password_salted = f"{salt}{password}"
-        hash_obj = hashlib.sha256(password_salted.encode('utf-8'))
-        password_hash = hash_obj.hexdigest()
-
-        # Almacenar salt + hash juntos
-        return f"{salt}${password_hash}", salt
+        return make_password(password)
 
     @staticmethod
     def _verify_password(password: str, stored_hash: str) -> bool:
         """Verifica si la contraseña coincide con el hash almacenado"""
-        if not stored_hash or '$' not in stored_hash:
+        if not stored_hash:
             return False
-
-        salt, expected_hash = stored_hash.split('$', 1)
-        password_salted = f"{salt}{password}"
-        hash_obj = hashlib.sha256(password_salted.encode('utf-8'))
-        actual_hash = hash_obj.hexdigest()
-
-        return secrets.compare_digest(actual_hash, expected_hash)
+        return check_password(password, stored_hash)
 
     def autenticar(self, email: str, password: str) -> AsesorAutenticado:
         """
@@ -137,7 +122,7 @@ class AuthenticationService:
             raise ValueError("Ya existe un usuario con ese correo electrónico")
 
         # Generar hash de contraseña
-        password_hash, _ = self._hash_password(password)
+        password_hash = self._hash_password(password)
 
         # Crear asesor
         asesor = Asesor.objects.create(
@@ -180,7 +165,7 @@ class AuthenticationService:
             raise CredencialesInvalidasError("La contraseña actual es incorrecta")
 
         # Generar nuevo hash
-        password_hash, _ = self._hash_password(password_nuevo)
+        password_hash = self._hash_password(password_nuevo)
         asesor.password_hash = password_hash
         asesor.save(update_fields=['password_hash', 'fecha_actualizacion'])
 
@@ -202,7 +187,7 @@ class AuthenticationService:
         except Asesor.DoesNotExist:
             raise UsuarioNoEncontradoError("Usuario no encontrado")
 
-        password_hash, _ = self._hash_password(password_nuevo)
+        password_hash = self._hash_password(password_nuevo)
         asesor.password_hash = password_hash
         asesor.save(update_fields=['password_hash', 'fecha_actualizacion'])
 
