@@ -47,7 +47,7 @@
                         </div>
                     </a>
 
-                    <a href="detalle_solicitud.html" class="menu-card">
+                    <a href="{% url 'detalle' %}" class="menu-card {% if request.resolver_match.url_name == 'detalle' %}active{% endif %}">
                         <div class="menu-card-icon green">
                             <i class="fa-solid fa-file-invoice"></i>
                         </div>

@@ -1,10 +1,239 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
 
-</body>
-</html>
+{% block title %}SGPM | Clientes{% endblock %}
+{% block page_title %}Solicitudes{% endblock %}
+{% block page_subtitle %}Gestión de solicitudes {% endblock %}
+
+{% block extra_head %}
+    {% load static %}
+        <link rel="stylesheet" href="{% static 'css/menu.css' %}">
+{% endblock %}
+
+{% block page_content %}
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-title">
+                <h2>Consulta de Detalle de solicitud</h2>
+                <p>Buscar y visualizar detalles de solicitudes</p>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+
+            <!-- Search Section -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <div>
+                        <h3>Buscar Detalle</h3>
+                        <p>Ingrese el código de la solicitud o datos del solicitante</p>
+                    </div>
+                </div>
+
+                <div class="registro-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fa-solid fa-hashtag"></i>
+                                Código de Expediente
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="codigoExpediente"
+                                placeholder="Ej: EXP-202601-JG1234"
+                            />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fa-solid fa-id-card"></i>
+                                Cédula del Solicitante
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="cedulaBusqueda"
+                                placeholder="Ej: 1234567890"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="limpiarBusqueda()">
+                            <i class="fa-solid fa-eraser"></i>
+                            Limpiar
+                        </button>
+                        <button type="button" class="btn-primary" onclick="buscarExpediente()">
+                            <i class="fa-solid fa-search"></i>
+                            Buscar Expediente
+                            <span class="arrow">→</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alert -->
+            <div id="searchAlert" class="error-alert" style="display: none;">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span id="searchAlertMessage"></span>
+            </div>
+
+            <!-- Expediente Detail Section -->
+            <div id="expedienteDetail" style="display: none;">
+
+                <!-- Header con Código y Estado -->
+                <div class="welcome-card" style="margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div>
+                            <h3 style="margin-bottom: 0.5rem;">Expediente <span id="displayCodigo"></span></h3>
+                            <div class="welcome-date">
+                                <i class="fa-regular fa-calendar"></i>
+                                Creado el <span id="displayFechaCreacion"></span>
+                            </div>
+                        </div>
+                        <div>
+                            <span id="estadoBadge" class="status-badge"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid de Información -->
+                <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                    <!-- Información del Solicitante -->
+                    <div class="stat-card" style="grid-column: span 2;">
+                        <div class="stat-icon blue">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <div class="stat-content" style="flex: 1;">
+                            <h4>Solicitante</h4>
+                            <div class="value" style="font-size: 1.25rem;" id="displayNombre"></div>
+                            <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                                <div class="trend">
+                                    <i class="fa-solid fa-id-card"></i>
+                                    <span id="displayCedula"></span>
+                                </div>
+                                <div class="trend">
+                                    <i class="fa-solid fa-envelope"></i>
+                                    <span id="displayCorreo"></span>
+                                </div>
+                                <div class="trend">
+                                    <i class="fa-solid fa-phone"></i>
+                                    <span id="displayTelefono"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tipo de Servicio -->
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fa-solid fa-passport"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h4>Tipo de Servicio</h4>
+                            <div class="value" id="displayTipoServicio"></div>
+                        </div>
+                    </div>
+
+                    <!-- País Destino -->
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fa-solid fa-earth-americas"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h4>País Destino</h4>
+                            <div class="value" id="displayPaisDestino"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fechas Clave y Timeline -->
+                <div class="profile-section" style="margin-bottom: 1.5rem;">
+                    <!-- Fechas Clave -->
+                    <div class="profile-card">
+                        <h5><i class="fa-solid fa-clock"></i> Fechas Clave</h5>
+                        <div class="profile-info-row">
+                            <span class="label">Fecha de Creación</span>
+                            <span class="value" id="fechaCreacion"></span>
+                        </div>
+                        <div class="profile-info-row">
+                            <span class="label">Última Actualización</span>
+                            <span class="value" id="fechaUltimaActualizacion"></span>
+                        </div>
+                        <div class="profile-info-row">
+                            <span class="label">Recepción de Documentos</span>
+                            <span class="value" id="fechaRecepcionDocs"></span>
+                        </div>
+                        <div class="profile-info-row">
+                            <span class="label">Envío de Solicitud</span>
+                            <span class="value" id="fechaEnvioSolicitud"></span>
+                        </div>
+                        <div class="profile-info-row">
+                            <span class="label">Fecha de Cita</span>
+                            <span class="value" id="fechaCita"></span>
+                        </div>
+                    </div>
+
+                    <!-- Estado Actual -->
+                    <div class="profile-card">
+                        <h5><i class="fa-solid fa-list-check"></i> Estado del Proceso</h5>
+                        <div id="timelineContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Citas Asociadas -->
+                <div class="form-card" style="margin-bottom: 1.5rem;">
+                    <div class="registro-form">
+                        <div class="section-header">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            <h4>Citas Programadas</h4>
+                        </div>
+                        <div id="citasContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Tareas Asociadas -->
+                <div class="form-card" style="margin-bottom: 1.5rem;">
+                    <div class="registro-form">
+                        <div class="section-header">
+                            <i class="fa-solid fa-tasks"></i>
+                            <h4>Tareas Pendientes</h4>
+                        </div>
+                        <div id="tareasContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Notificaciones -->
+                <div class="form-card">
+                    <div class="registro-form">
+                        <div class="section-header">
+                            <i class="fa-solid fa-bell"></i>
+                            <h4>Notificaciones Recientes</h4>
+                        </div>
+                        <div id="notificacionesContainer"></div>
+                    </div>
+                </div>
+
+                <!-- Acciones -->
+                <div class="form-actions" style="border-top: 2px solid var(--border-color); padding-top: 1.5rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn-secondary" onclick="window.location.href='/dashboard/'">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        Volver al Dashboard
+                    </button>
+                    <button type="button" class="btn-primary" onclick="imprimirExpediente()">
+                        <i class="fa-solid fa-print"></i>
+                        Imprimir Expediente
+                        <span class="arrow">→</span>
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+{% endblock %}

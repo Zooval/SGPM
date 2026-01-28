@@ -16,6 +16,7 @@ urlpatterns = [
     path("consultar/", consulta_expedientes_view, name="consultar-expediente"),
 
     path ("solicitud", solicitud_view, name="solicitud"),
-    path("listado/", listado_view, name="listado"),
+    path("solicitud/listado/", listado_view, name="listado"),
+    path("solicitud/detalle", detalle_view, name="detalle"),
     path("", login_view, name="home"),  # Redirigir raíz a login
 ]

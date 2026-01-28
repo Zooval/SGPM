@@ -18,3 +18,10 @@ def listado_view(request):
         'page_title': 'listado solicitudes',
     }
     return render(request, 'solicitudes/listado.html', context)
+
+@login_required
+def detalle_view(request):
+    context = {
+        'page_title': 'detalle solicitudes',
+    }
+    return render(request, 'solicitudes/detalle.html', context)
